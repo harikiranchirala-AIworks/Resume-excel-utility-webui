@@ -214,8 +214,8 @@ function renderSummaryCards(tracks) {
     };
     card.innerHTML = `
       <div class="track-name">${TRACK_EMOJIS[tc]} ${tc}</div>
-      <div class="score-num">${t.pct}%</div>
-      <span class="level-badge">${t.level}</span>
+      <div class="score-num">${t.final_pts} <span style="font-size:0.9rem;font-weight:400;color:var(--muted)">pts</span> <span style="font-size:0.85rem;color:var(--text);font-weight:400">(${t.pct}%)</span></div>
+      <span class="level-badge ${t.level_class}">${t.level}</span>
       <div class="progress-bar-wrap"><div class="progress-bar" style="width:${t.pct}%"></div></div>
       <div style="font-size:0.78rem;color:var(--muted);margin-top:0.4rem">${t.label}</div>`;
     grid.appendChild(card);
@@ -765,14 +765,14 @@ function renderBestTrackBanner(data) {
 
   document.getElementById("bt-track-name").textContent =
     `${TRACK_EMOJIS[best_track]} ${t.label}`;
-  document.getElementById("bt-pct").textContent = `${best_pct}%`;
+  document.getElementById("bt-pct").textContent = `${t.final_pts} pts (${t.pct}%)`;
 
   const levelBadge = document.getElementById("bt-level-badge");
   levelBadge.className = `level-badge ${t.level_class}`;
   levelBadge.textContent = t.level;
 
   document.getElementById("bt-runner-up").textContent = runnerUpT
-    ? `Runner-up: ${TRACK_EMOJIS[runnerUpTc]} ${runnerUpT.label} (${runnerUpT.pct}%)`
+    ? `Runner-up: ${TRACK_EMOJIS[runnerUpTc]} ${runnerUpT.label} (${runnerUpT.final_pts} pts)`
     : "";
 
   // Reset AI result panel
