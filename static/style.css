@@ -203,6 +203,64 @@ button.secondary:hover { color: var(--text); }
 #tab-content { padding: 1.5rem 1.75rem; }
 
 /* ── KEYWORD TABLE ── */
+.kw-table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.85rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.kw-table-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+.kw-count-badge {
+  font-size: 0.75rem;
+  color: var(--muted);
+  background: var(--surface2);
+  padding: 0.15rem 0.55rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  font-weight: 500;
+}
+.kw-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.kw-select-filter {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.83rem;
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+.kw-select-filter:hover, .kw-select-filter:focus {
+  border-color: var(--accent);
+}
+.kw-empty-state {
+  text-align: center;
+  padding: 1.5rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+  background: var(--surface2);
+  border-radius: 8px;
+  border: 1px dashed var(--border);
+  margin-top: 0.5rem;
+}
+
 .keyword-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
 .keyword-table th {
   text-align: left;

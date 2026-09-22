@@ -249,10 +249,14 @@ function renderTabContent(tc) {
   if (!t) { content.innerHTML = ""; return; }
 
   const matched = t.keywords.filter(k => k.score > 0);
+  const missing = t.keywords.filter(k => k.score === 0);
   const trackBullets = bullets[tc] || [];
   const hitBullets = trackBullets.filter(b => b.jd_hit_computed);
   const otherBullets = trackBullets.filter(b => !b.jd_hit_computed);
   const hasResume = !!resumeTexts[tc];
+
+  // Default to 'matched' if any hit, otherwise 'all'
+  const defaultFilter = matched.length > 0 ? "matched" : "all";
 
   content.innerHTML = `
     ${matched.length ? `
@@ -261,11 +265,26 @@ function renderTabContent(tc) {
       <div class="kw-pills">${matched.map(k => `<span class="kw-pill">${escHtml(k.keyword)}</span>`).join("")}</div>
     </div>` : ""}
 
-    <table class="keyword-table">
+    <div class="kw-table-header">
+      <div class="kw-table-title">
+        <span>📋 Keyword Breakdown</span>
+        <span class="kw-count-badge" id="kw-count-badge-${tc}"></span>
+      </div>
+      <div class="kw-filter-group">
+        <label for="kw-filter-${tc}">View:</label>
+        <select id="kw-filter-${tc}" class="kw-select-filter" onchange="filterKeywordTable('${tc}')">
+          <option value="matched" ${defaultFilter === "matched" ? "selected" : ""}>✅ Matched Only (${matched.length})</option>
+          <option value="missing" ${defaultFilter === "missing" ? "selected" : ""}>❌ Unmatched / Missing (${missing.length})</option>
+          <option value="all" ${defaultFilter === "all" ? "selected" : ""}>🌐 Show All (${t.keywords.length})</option>
+        </select>
+      </div>
+    </div>
+
+    <table class="keyword-table" id="kw-table-${tc}">
       <thead><tr><th>Keyword / Theme</th><th>Weight</th><th>Score</th><th>Weighted</th><th>Matched As</th></tr></thead>
-      <tbody>
+      <tbody id="kw-tbody-${tc}">
         ${t.keywords.map(k => `
-          <tr class="${k.score > 0 ? "hit" : ""}">
+          <tr class="kw-row ${k.score > 0 ? "hit" : "miss"}" data-score="${k.score}">
             <td>${escHtml(k.keyword)}</td>
             <td>${k.weight}</td>
             <td><span class="badge-score s${k.score}">${k.score}</span></td>
@@ -274,9 +293,14 @@ function renderTabContent(tc) {
           </tr>`).join("")}
       </tbody>
     </table>
+    <div id="kw-empty-${tc}" class="kw-empty-state hidden"></div>
 
-    <hr class="section-divider" />
+    <hr class="section-divider" />`;
 
+  // Apply initial filter view
+  filterKeywordTable(tc);
+
+  content.innerHTML += `
     ${hitBullets.length ? `<div class="bullets-header">✅ JD-Matching Bullets (${hitBullets.length})</div>${renderBullets(hitBullets)}` : ""}
     ${otherBullets.length ? `<div class="bullets-header" style="color:var(--muted)">📋 Other Bullets</div>${renderBullets(otherBullets)}` : ""}
 
@@ -292,6 +316,48 @@ function renderTabContent(tc) {
       <div id="ai-result-${tc}"></div>
     </div>
   `;
+}
+
+function filterKeywordTable(tc) {
+  const select = document.getElementById(`kw-filter-${tc}`);
+  const tbody = document.getElementById(`kw-tbody-${tc}`);
+  const badge = document.getElementById(`kw-count-badge-${tc}`);
+  const emptyEl = document.getElementById(`kw-empty-${tc}`);
+  const table = document.getElementById(`kw-table-${tc}`);
+  if (!select || !tbody) return;
+
+  const mode = select.value; // 'matched' | 'missing' | 'all'
+  const rows = tbody.querySelectorAll("tr.kw-row");
+  let visibleCount = 0;
+  const totalCount = rows.length;
+
+  rows.forEach(row => {
+    const score = parseInt(row.dataset.score, 10);
+    let show = false;
+    if (mode === "all") show = true;
+    else if (mode === "matched" && score > 0) show = true;
+    else if (mode === "missing" && score === 0) show = true;
+
+    row.style.display = show ? "" : "none";
+    if (show) visibleCount++;
+  });
+
+  if (badge) {
+    badge.textContent = `Showing ${visibleCount} of ${totalCount}`;
+  }
+
+  if (emptyEl && table) {
+    if (visibleCount === 0) {
+      table.style.display = "none";
+      emptyEl.classList.remove("hidden");
+      if (mode === "matched") emptyEl.textContent = "🔍 No matching keywords found in the JD for this track.";
+      else if (mode === "missing") emptyEl.textContent = "🎉 Outstanding! All keywords matched for this track!";
+      else emptyEl.textContent = "No keywords available.";
+    } else {
+      table.style.display = "";
+      emptyEl.classList.add("hidden");
+    }
+  }
 }
 
 /* ═══════════════════════════ AI ENHANCEMENT ════════════════════════ */
