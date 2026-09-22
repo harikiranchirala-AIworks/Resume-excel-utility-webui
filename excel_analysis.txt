@@ -1,0 +1,63 @@
+﻿Sheets: ['OVERVIEW', 'JD_INPUT', 'AI_SCORE', 'TPM_SCORE', 'ITDM_SCORE', 'PM_SCORE', 'KEYWORDS', 'FINAL_RECOMMENDATION', 'BULLET_GENERATOR']
+
+=== Sheet: OVERVIEW | rows_total: checking | cols: 4 ===
+Columns: ['Unnamed: 0', '≡ƒÄ»  JD-TO-RESUME MATCHING UTILITY', 'Unnamed: 2', 'Unnamed: 3']
+   Unnamed: 0                                                     ≡ƒÄ»  JD-TO-RESUME MATCHING UTILITY Unnamed: 2 Unnamed: 3
+0         NaN                      Automated Job Description analysis across 3 professional tracks        NaN        NaN
+1         NaN  AI Transformation  ΓÇó  Technical Program Manager  ΓÇó  IT Delivery  ΓÇó  Product Manager        NaN        NaN
+2         NaN                                                                                  NaN        NaN        NaN
+
+=== Sheet: JD_INPUT | rows_total: checking | cols: 1 ===
+Columns: ['Job Description Input']
+Empty DataFrame
+Columns: [Job Description Input]
+Index: []
+
+=== Sheet: AI_SCORE | rows_total: checking | cols: 8 ===
+Columns: ['AI Transformation Manager - Scoring', 'Unnamed: 1', 'Unnamed: 2', 'Unnamed: 3', 'Unnamed: 4', 'Unnamed: 5', 'Unnamed: 6', 'Unnamed: 7']
+  AI Transformation Manager - Scoring Unnamed: 1          Unnamed: 2      Unnamed: 3        Unnamed: 4  Unnamed: 5  Unnamed: 6            Unnamed: 7
+0                                 NaN        NaN                 NaN             NaN               NaN         NaN         NaN                   NaN
+1                     Keyword / Theme     Weight  Auto Score (0,1,2)  Weighted Score             Notes         NaN         NaN          Contribution
+2                   AI transformation          2                   0               0  No keyword match         NaN         1.0  ΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæ
+
+=== Sheet: TPM_SCORE | rows_total: checking | cols: 8 ===
+Columns: ['Technical Program Manager - Scoring', 'Unnamed: 1', 'Unnamed: 2', 'Unnamed: 3', 'Unnamed: 4', 'Unnamed: 5', 'Unnamed: 6', 'Unnamed: 7']
+  Technical Program Manager - Scoring Unnamed: 1          Unnamed: 2      Unnamed: 3        Unnamed: 4  Unnamed: 5  Unnamed: 6            Unnamed: 7
+0                                 NaN        NaN                 NaN             NaN               NaN         NaN         NaN                   NaN
+1                     Keyword / Theme     Weight  Auto Score (0,1,2)  Weighted Score             Notes         NaN         NaN          Contribution
+2        Technical program management          2                   0               0  No keyword match         NaN         1.0  ΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæ
+
+=== Sheet: ITDM_SCORE | rows_total: checking | cols: 8 ===
+Columns: ['IT Delivery Manager - Scoring', 'Unnamed: 1', 'Unnamed: 2', 'Unnamed: 3', 'Unnamed: 4', 'Unnamed: 5', 'Unnamed: 6', 'Unnamed: 7']
+  IT Delivery Manager - Scoring Unnamed: 1          Unnamed: 2      Unnamed: 3        Unnamed: 4  Unnamed: 5  Unnamed: 6            Unnamed: 7
+0                           NaN        NaN                 NaN             NaN               NaN         NaN         NaN                   NaN
+1               Keyword / Theme     Weight  Auto Score (0,1,2)  Weighted Score             Notes         NaN         NaN          Contribution
+2        IT delivery management          2                   0               0  No keyword match         NaN         1.0  ΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæ
+
+=== Sheet: PM_SCORE | rows_total: checking | cols: 8 ===
+Columns: ['Product Manager - Scoring', 'Unnamed: 1', 'Unnamed: 2', 'Unnamed: 3', 'Unnamed: 4', 'Unnamed: 5', 'Unnamed: 6', 'Unnamed: 7']
+  Product Manager - Scoring Unnamed: 1          Unnamed: 2      Unnamed: 3        Unnamed: 4  Unnamed: 5  Unnamed: 6            Unnamed: 7
+0                       NaN        NaN                 NaN             NaN               NaN         NaN         NaN                   NaN
+1           Keyword / Theme     Weight  Auto Score (0,1,2)  Weighted Score             Notes         NaN         NaN          Contribution
+2        Product management          2                   0               0  No keyword match         NaN         1.0  ΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæΓûæ
+
+=== Sheet: KEYWORDS | rows_total: checking | cols: 5 ===
+Columns: ['≡ƒöæ KEYWORD SYNONYM BANK ΓÇö Expanded (Tier & Track tagged)', 'Unnamed: 1', 'Unnamed: 2', 'Unnamed: 3', 'Unnamed: 4']
+  ≡ƒöæ KEYWORD SYNONYM BANK ΓÇö Expanded (Tier & Track tagged)                                                                                                                                    Unnamed: 1 Unnamed: 2   Unnamed: 3 Unnamed: 4
+0                                                 Keyword                                                                                                                                      Synonyms      Count  Weight Tier      Track
+1                                       AI transformation                           ai transformation|ai-led|ai driven|enterprise ai|ai modernization|ai adoption|ai enablement|ai-first|ai integration          9       Tier 1         AI
+2                                  Digital transformation  digital transformation|digital modernization|digitalization|digital change|digital reinvention|business transformation|modernization program          7       Tier 2         AI
+
+=== Sheet: FINAL_RECOMMENDATION | rows_total: checking | cols: 4 ===
+Columns: ['Final Recommendation - Auto-Calculated', 'Unnamed: 1', 'Unnamed: 2', 'Unnamed: 3']
+  Final Recommendation - Auto-Calculated   Unnamed: 1   Unnamed: 2                                                                    Unnamed: 3
+0                                    NaN          NaN          NaN                                                                           NaN
+1                         Resume Version  Final Score  Match Level                                                                         Notes
+2              AI Transformation Manager            5   Weak Match  Best for AI/transformation-led roles, GenAI strategy, intelligent automation
+
+=== Sheet: BULLET_GENERATOR | rows_total: checking | cols: 5 ===
+Columns: ['Γ£ì∩╕Å  RESUME BULLET GENERATOR  ΓÇö  Pre-written bullets you can copy into your resume', 'Unnamed: 1', 'Unnamed: 2', 'Unnamed: 3', 'Unnamed: 4']
+                    Γ£ì∩╕Å  RESUME BULLET GENERATOR  ΓÇö  Pre-written bullets you can copy into your resume         Unnamed: 1                                                                                                                                                            Unnamed: 2 Unnamed: 3    Unnamed: 4
+0  Γ£à JD analyzed ΓÇö GREEN bullets below match your JD's keywords ΓåÆ copy them straight into your resume                NaN                                                                                                                                                                   NaN        NaN           NaN
+1                                                                                               Track      Keyword Theme                                                                                                                      Suggested Resume Bullet (edit with your metrics)    JD Hit?  Recommended?
+2                                                                                                ≡ƒñû AI  AI transformation  Led enterprise AI transformation across [X] business units ΓÇö delivered [$XM] in productivity gains and reduced manual effort by [X]% through GenAI-driven workflows.       Γ¥î No             ΓÇö
