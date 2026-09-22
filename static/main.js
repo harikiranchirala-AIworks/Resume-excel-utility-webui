@@ -189,7 +189,14 @@ function showError(msg) {
 /* ═══════════════════════════ RENDER RESULTS ════════════════════════ */
 
 function renderResults(data) {
-  const { tracks, bullets, matched_keywords } = data;
+  const { tracks, bullets, matched_keywords, signals } = data;
+  if (signals) {
+    document.getElementById("sig-salary").textContent = signals.salary || "Not specified";
+    document.getElementById("sig-exp").textContent = signals.experience || "Not specified";
+    document.getElementById("sig-work").textContent = signals.work_mode || "Not specified";
+    document.getElementById("sig-seniority").textContent = signals.seniority || "Not specified";
+    document.getElementById("sig-industry").textContent = signals.industry || "Not specified";
+  }
   renderSummaryCards(tracks);
   renderTabs(tracks, bullets, matched_keywords);
   renderChart(tracks, activeChartType);

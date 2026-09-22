@@ -192,6 +192,9 @@ def score_jd(jd_text: str) -> dict:
         reverse=True,
     )
 
+    # Extract JD intelligence signals (Salary, Experience, Work Mode, Seniority, Industry)
+    signals = extract_jd_signals(jd_text)
+
     return {
         "tracks": tracks,
         "bullets": track_bullets,
@@ -199,6 +202,86 @@ def score_jd(jd_text: str) -> dict:
         "best_track": best_track,
         "best_pct": best_pct,
         "ranked_tracks": ranked_tracks,
+        "signals": signals,
+    }
+
+
+def extract_jd_signals(jd_text: str) -> dict:
+    """
+    Extracts key executive metadata signals from the JD text:
+      - salary: Estimated Salary Range
+      - experience: Years of Experience Required
+      - work_mode: Remote / Hybrid / On-site
+      - seniority: Seniority Level
+      - industry: Industry / Domain Focus
+    """
+    text = jd_text.lower()
+
+    # 1. Salary Range Regex
+    salary_patterns = [
+        r'(\$\d{2,3}(?:,\d{3})*(?:\s*-\s*\$\d{2,3}(?:,\d{3})*)?\s*(?:k|usd|/yr|/year|per year|per annum)?)',
+        r'(\$\d{2,3}[kK]\s*(?:-|to)\s*\$\d{2,3}[kK])',
+        r'(£\d{2,3}(?:,\d{3})*(?:\s*-\s*£\d{2,3}(?:,\d{3})*)?)',
+        r'(\d{2,3}k\s*-\s*\d{2,3}k\s*usd)',
+    ]
+    salary = None
+    for p in salary_patterns:
+        m = re.search(p, jd_text, re.IGNORECASE)
+        if m and len(m.group(1).strip()) > 2:
+            salary = m.group(1).strip()
+            break
+
+    # 2. Years of Experience Regex
+    exp_patterns = [
+        r'(\d{1,2}\s*(?:to|-|\+)\s*\d{1,2}\+?\s*years(?:\s*of)?\s*experience)',
+        r'(\d{1,2}\+\s*years(?:\s*of)?\s*experience)',
+        r'(minimum\s*of\s*\d{1,2}\+?\s*years)',
+    ]
+    exp = None
+    for p in exp_patterns:
+        m = re.search(p, text)
+        if m:
+            exp = m.group(1).strip().title()
+            break
+
+    # 3. Work Mode
+    if 'hybrid' in text:
+        work_mode = 'Hybrid 🏢🏠'
+    elif 'remote' in text or 'work from home' in text:
+        work_mode = 'Remote 🏠'
+    elif 'on-site' in text or 'onsite' in text or 'in-office' in text:
+        work_mode = 'On-site 🏢'
+    else:
+        work_mode = 'Not Specified'
+
+    # 4. Seniority
+    if any(k in text for k in ['director', 'head of', 'vice president', 'vp', 'chief']):
+        seniority = 'Director / Executive 👑'
+    elif any(k in text for k in ['principal', 'staff', 'lead']):
+        seniority = 'Principal / Lead 🚀'
+    elif any(k in text for k in ['senior manager', 'project manager', 'program manager', 'delivery manager', 'product manager', 'scrum master']):
+        seniority = 'Manager / Lead 📊'
+    elif 'senior' in text:
+        seniority = 'Senior Level ⭐'
+    else:
+        seniority = 'Mid-Senior Level'
+
+    # 5. Industry / Domain Signals
+    industries = []
+    if any(k in text for k in ['saas', 'software as a service']): industries.append('SaaS')
+    if any(k in text for k in ['erp', 'crm', 'enterprise']): industries.append('Enterprise Systems')
+    if any(k in text for k in ['fintech', 'finance', 'banking']): industries.append('Fintech / Finance')
+    if any(k in text for k in ['ai', 'genai', 'machine learning', 'llm']): industries.append('AI & GenAI')
+    if any(k in text for k in ['consulting', 'services']): industries.append('Consulting')
+
+    industry_str = ' / '.join(industries) if industries else 'Technology / IT'
+
+    return {
+        'salary': salary or 'Not specified in JD',
+        'experience': exp or 'Not specified',
+        'work_mode': work_mode,
+        'seniority': seniority,
+        'industry': industry_str
     }
 
 
