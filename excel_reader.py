@@ -143,8 +143,13 @@ def load_scoring_structure() -> dict[str, list[dict]]:
         rows = []
         for _, row in df.iterrows():
             kw = _clean_str(row.get("keyword", ""))
-            if not kw:
+            if not kw or kw.isdigit() or len(kw) <= 1:
                 continue
+            # Skip Excel summary & footer section headers
+            kw_lower = kw.lower()
+            if any(s in kw_lower for s in ["total keyword", "additional scoring", "final score", "key gaps", "match level", "action items"]):
+                continue
+
             try:
                 weight = int(float(row.get("weight", 1)))
             except (ValueError, TypeError):
