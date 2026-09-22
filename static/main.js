@@ -693,7 +693,21 @@ function renderFullAnalysisGrid(enhancements) {
       </div>`;
 
     if (e.error && e.error !== "NO_API_KEY" && e.error !== "INVALID_API_KEY") {
-      html += `<p class="warn-msg" style="font-size:0.85rem">✗ ${escHtml(e.error)}</p>`;
+      if (e.error === "RATE_LIMIT_EXCEEDED" || e.error.includes("429") || e.error.includes("RESOURCE_EXHAUSTED")) {
+        html += `
+          <div style="background:rgba(255,169,77,0.1);border:1px solid rgba(255,169,77,0.35);border-radius:8px;padding:0.75rem 0.9rem;margin-top:0.5rem;font-size:0.83rem">
+            <div style="font-weight:600;color:var(--warn);margin-bottom:0.25rem">⏱ Gemini Rate Limit Reached (Free Tier)</div>
+            <div style="color:var(--text);line-height:1.4">${escHtml(e.summary || "Google AI free tier limit reached (5 req/min). Please wait ~30 seconds and click '✨ Enhance My Resume' on this tab.")}</div>
+          </div>`;
+      } else if (e.error === "SERVICE_UNAVAILABLE" || e.error.includes("503")) {
+        html += `
+          <div style="background:rgba(255,169,77,0.1);border:1px solid rgba(255,169,77,0.35);border-radius:8px;padding:0.75rem 0.9rem;margin-top:0.5rem;font-size:0.83rem">
+            <div style="font-weight:600;color:var(--warn);margin-bottom:0.25rem">⚡ AI Service Busy</div>
+            <div style="color:var(--text);line-height:1.4">${escHtml(e.summary || "Google AI service is currently busy. Please wait a moment and try again.")}</div>
+          </div>`;
+      } else {
+        html += `<p class="warn-msg" style="font-size:0.85rem">⚠ ${escHtml(e.error)}</p>`;
+      }
     } else {
       // Summary
       if (e.summary) {

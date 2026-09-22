@@ -92,33 +92,17 @@ Rules:
 """
 
     try:
-        import warnings, time
+        import warnings
         from google import genai
-        from google.genai import types, errors as genai_errors
+        from google.genai import types
         warnings.filterwarnings("ignore", category=UserWarning)
         client = genai.Client(api_key=api_key)
 
-        # Retry up to 3 times with backoff for 503 / rate-limit errors
-        last_exc = None
-        for attempt, wait in enumerate([0, 3, 7]):
-            if wait:
-                time.sleep(wait)
-            try:
-                response = client.models.generate_content(
-                    model="models/gemini-3.6-flash",
-                    contents=prompt,
-                    config=types.GenerateContentConfig(temperature=0.4),
-                )
-                break
-            except Exception as exc:
-                last_exc = exc
-                err_str = str(exc)
-                if "503" in err_str or "UNAVAILABLE" in err_str or "429" in err_str:
-                    if attempt < 2:
-                        continue   # retry
-                raise last_exc
-        else:
-            raise last_exc
+        response = client.models.generate_content(
+            model="models/gemini-3.6-flash",
+            contents=prompt,
+            config=types.GenerateContentConfig(temperature=0.4),
+        )
 
         raw = response.text.strip()
 
@@ -143,13 +127,29 @@ Rules:
         }
     except Exception as e:
         err_str = str(e)
-        if "API_KEY_INVALID" in err_str or "API key not valid" in err_str:
+        if "API_KEY_INVALID" in err_str or "API key not valid" in err_str or "INVALID_ARGUMENT" in err_str:
             return {
                 "gap_keywords": [],
                 "suggested_bullets": [],
                 "section_suggestions": [],
                 "summary": "",
                 "error": "INVALID_API_KEY",
+            }
+        if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "Quota exceeded" in err_str:
+            return {
+                "gap_keywords": missed[:5],
+                "suggested_bullets": [],
+                "section_suggestions": [],
+                "summary": "Gemini Free-Tier rate limit reached (5 requests/min limit). Please wait ~30-45 seconds before trying again.",
+                "error": "RATE_LIMIT_EXCEEDED",
+            }
+        if "503" in err_str or "UNAVAILABLE" in err_str:
+            return {
+                "gap_keywords": missed[:5],
+                "suggested_bullets": [],
+                "section_suggestions": [],
+                "summary": "Google AI service is currently busy. Please wait a few seconds and try again.",
+                "error": "SERVICE_UNAVAILABLE",
             }
         return {
             "gap_keywords": [],

@@ -114,16 +114,16 @@ def enhance_all():
         return track_code, result
 
     combined = {}
-    # Run all 4 tracks in parallel threads
-    with ThreadPoolExecutor(max_workers=4) as executor:
-        futures = {executor.submit(_enhance_track, tc): tc for tc in TRACK_ORDER}
-        for future in as_completed(futures):
-            try:
-                tc, result = future.result()
-                combined[tc] = result
-            except Exception as exc:
-                tc = futures[future]
-                combined[tc] = {"error": str(exc), "track": tc}
+    # Run 4 tracks sequentially with a 1.2s delay to respect Gemini Free Tier rate limits (5 RPM)
+    import time
+    for idx, tc in enumerate(TRACK_ORDER):
+        if idx > 0:
+            time.sleep(1.2)
+        try:
+            _, result = _enhance_track(tc)
+            combined[tc] = result
+        except Exception as exc:
+            combined[tc] = {"error": str(exc), "track": tc}
 
     return jsonify({
         "scoring": scoring_result,
