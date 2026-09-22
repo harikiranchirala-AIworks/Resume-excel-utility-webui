@@ -744,11 +744,26 @@ function renderFullAnalysisGrid(enhancements) {
           html += `<div class="suggestion-item"><span class="suggestion-dot">→</span><span>${escHtml(s)}</span></div>`;
         });
       }
+
+      // Action button to tailor full resume directly for this track
+      html += `
+        <div style="margin-top:1rem;padding-top:0.85rem;border-top:1px solid var(--border);display:flex;justify-content:flex-end">
+          <button class="tailor-btn" style="font-size:0.8rem;padding:0.4rem 0.85rem" onclick="activateTrackAndTailor('${tc}')">
+            🪄 Tailor Full Resume (${tc})
+          </button>
+        </div>`;
     }
 
     card.innerHTML = html;
     grid.appendChild(card);
   });
+}
+
+function activateTrackAndTailor(tc) {
+  activateTab(tc);
+  const tabEl = document.getElementById("tab-content");
+  if (tabEl) tabEl.scrollIntoView({ behavior: "smooth", block: "start" });
+  runTailorResume(tc);
 }
 
 function clearFullAnalysis() {
@@ -949,6 +964,7 @@ async function runTailorResume(tc) {
 function renderTailoredResume(tc, data) {
   const resultEl = document.getElementById(`tailor-result-${tc}`);
   const md = data.full_markdown || "";
+  const origResume = resumeTexts[tc] || "(No candidate resume uploaded for this track)";
 
   let html = `
     <div class="tailor-res-card">
@@ -958,13 +974,60 @@ function renderTailoredResume(tc, data) {
           <button class="tailor-action-btn" onclick="copyTailoredMd('${tc}')">📋 Copy Markdown</button>
           <button class="tailor-action-btn" onclick="downloadDocxFile('${tc}')">📥 Download Word (.docx)</button>
           <button class="tailor-action-btn" onclick="downloadTxtFile('${tc}')">📄 Download Text (.txt)</button>
+          <button class="tailor-action-btn" onclick="window.print()">🖨️ Print / Save PDF</button>
         </div>
       </div>
-      <div class="tailor-md-box">${escHtml(md)}</div>
+
+      <div class="tailor-view-bar">
+        <button class="tailor-view-btn active" id="tv-btn-md-${tc}" onclick="switchTailorView('${tc}', 'md')">💻 Formatted Resume</button>
+        <button class="tailor-view-btn" id="tv-btn-split-${tc}" onclick="switchTailorView('${tc}', 'split')">⚔️ Side-by-Side View</button>
+        <button class="tailor-view-btn" id="tv-btn-edit-${tc}" onclick="switchTailorView('${tc}', 'edit')">✏️ Edit & Customise</button>
+      </div>
+
+      <!-- View 1: Formatted Resume Box -->
+      <div id="tv-box-md-${tc}" class="tailor-md-box">${escHtml(md)}</div>
+
+      <!-- View 2: Side-by-Side Comparison -->
+      <div id="tv-box-split-${tc}" class="tailor-split-grid hidden">
+        <div class="tailor-split-col">
+          <div class="tailor-col-title">📄 Original Candidate Resume</div>
+          <div class="tailor-md-box" style="max-height:340px">${escHtml(origResume)}</div>
+        </div>
+        <div class="tailor-split-col">
+          <div class="tailor-col-title">✨ AI-Tailored Resume (${escHtml(data.job_title || tc)})</div>
+          <div class="tailor-md-box" style="max-height:340px">${escHtml(md)}</div>
+        </div>
+      </div>
+
+      <!-- View 3: Live Editable Textarea -->
+      <div id="tv-box-edit-${tc}" class="hidden">
+        <p style="font-size:0.82rem;color:var(--muted);margin-bottom:0.5rem">💡 Tip: Any edits you make here will be saved live and included when you click "Download Word (.docx)" or "Copy Markdown".</p>
+        <textarea id="tv-textarea-${tc}" class="tailor-edit-textarea" oninput="onTailorEdit('${tc}')">${escHtml(md)}</textarea>
+      </div>
     </div>`;
 
   resultEl.innerHTML = html;
   resultEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function switchTailorView(tc, mode) {
+  document.querySelectorAll(`.tailor-view-btn[id^="tv-btn-"][id$="-${tc}"]`).forEach(b => b.classList.remove("active"));
+  document.getElementById(`tv-btn-${mode}-${tc}`)?.classList.add("active");
+
+  document.getElementById(`tv-box-md-${tc}`)?.classList.toggle("hidden", mode !== "md");
+  document.getElementById(`tv-box-split-${tc}`)?.classList.toggle("hidden", mode !== "split");
+  document.getElementById(`tv-box-edit-${tc}`)?.classList.toggle("hidden", mode !== "edit");
+}
+
+function onTailorEdit(tc) {
+  const textarea = document.getElementById(`tv-textarea-${tc}`);
+  if (!textarea) return;
+  const newMd = textarea.value;
+  if (window._tailoredResumes[tc]) {
+    window._tailoredResumes[tc].full_markdown = newMd;
+  }
+  const boxMd = document.getElementById(`tv-box-md-${tc}`);
+  if (boxMd) boxMd.textContent = newMd;
 }
 
 async function downloadDocxFile(tc) {

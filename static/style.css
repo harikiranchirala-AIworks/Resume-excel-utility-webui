@@ -696,5 +696,68 @@ footer {
   white-space: pre-wrap;
 }
 
+.tailor-view-bar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.5rem;
+}
+.tailor-view-btn {
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  font-size: 0.84rem;
+  font-weight: 600;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+}
+.tailor-view-btn:hover { color: var(--text); }
+.tailor-view-btn.active {
+  color: var(--accent2);
+  background: rgba(0,212,170,0.12);
+}
+
+.tailor-split-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+@media (max-width: 900px) {
+  .tailor-split-grid { grid-template-columns: 1fr; }
+}
+
+.tailor-split-col {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem 1.1rem;
+}
+.tailor-col-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.75rem;
+}
+
+.tailor-edit-textarea {
+  width: 100%;
+  min-height: 320px;
+  background: #111322;
+  color: #e2e8f0;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 1rem;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  outline: none;
+  resize: vertical;
+}
+
 
 
