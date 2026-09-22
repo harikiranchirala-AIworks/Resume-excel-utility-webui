@@ -158,3 +158,111 @@ Rules:
             "summary": "",
             "error": err_str,
         }
+
+
+def tailor_full_resume(jd_text: str, resume_text: str, track_code: str, scored_kws: list[dict]) -> dict:
+    """
+    Uses Gemini 3.6 Flash to rewrite the candidate's entire resume tailored specifically to the JD.
+    Returns structured dict with tailored summary, skills, experience, and full markdown text.
+    """
+    from excel_reader import TRACK_LABELS
+    track_label = TRACK_LABELS.get(track_code, track_code)
+
+    api_key = get_api_key()
+    if not api_key:
+        return {"error": "NO_API_KEY"}
+
+    matched = [k["keyword"] for k in scored_kws if k.get("score", 0) > 0]
+    missed = [k["keyword"] for k in scored_kws if k.get("score", 0) == 0]
+
+    resume_input = resume_text.strip() if resume_text else "(No candidate resume provided - generate an exemplary executive resume structure for this role)"
+
+    prompt = f"""You are an elite executive resume writer and ATS optimization specialist.
+
+## Target Role Track
+{track_label}
+
+## Job Description
+{jd_text[:3000]}
+
+## Candidate Original Resume / Profile
+{resume_input[:3000]}
+
+## Keyword Signals
+Matched Keywords: {", ".join(matched[:10]) if matched else "None"}
+Top Missing Gaps: {", ".join(missed[:10]) if missed else "None"}
+
+## Instructions
+Generate a complete, highly compelling, ATS-optimized executive resume tailored specifically for this Job Description.
+
+Ensure:
+1. Professional Summary: 3-4 sentence impactful executive summary matching the target role title and JD priorities.
+2. Core Competencies: Categorized skills incorporating key JD keywords.
+3. Experience Bullets: Strong action-oriented bullet points with quantified achievements (% improvement, team size, budget, scope).
+4. Full Markdown Resume: Complete formatted resume ready to submit.
+
+Respond ONLY with valid JSON (no markdown fences):
+{{
+  "job_title": "<aligned target job title>",
+  "tailored_summary": "<3-4 sentence executive summary>",
+  "core_competencies": [
+    {{"category": "<Category Name>", "skills": ["<Skill 1>", "<Skill 2>", "<Skill 3>"]}}
+  ],
+  "experience_highlights": [
+    {{"role": "<Role Title>", "company": "<Company / Client>", "bullets": ["<Bullet 1>", "<Bullet 2>", "<Bullet 3>"]}}
+  ],
+  "full_markdown": "<Complete Full Markdown Resume with headers ## PROFESSIONAL SUMMARY, ## CORE COMPETENCIES, ## PROFESSIONAL EXPERIENCE, ## EDUCATION & CERTIFICATIONS>"
+}}"""
+
+    try:
+        import warnings, time
+        from google import genai
+        from google.genai import types
+        warnings.filterwarnings("ignore", category=UserWarning)
+        client = genai.Client(api_key=api_key)
+
+        response = None
+        last_exc = None
+        for attempt, wait in enumerate([0, 2, 4]):
+            if wait:
+                time.sleep(wait)
+            try:
+                response = client.models.generate_content(
+                    model="models/gemini-3.6-flash",
+                    contents=prompt,
+                    config=types.GenerateContentConfig(temperature=0.4),
+                )
+                break
+            except Exception as exc:
+                last_exc = exc
+                err_str = str(exc)
+                if "429" in err_str or "503" in err_str or "UNAVAILABLE" in err_str:
+                    if attempt < 2:
+                        continue
+                raise exc
+
+        if response is None and last_exc is not None:
+            raise last_exc
+
+        raw = response.text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1]
+            if raw.endswith("```"):
+                raw = raw.rsplit("```", 1)[0]
+        raw = raw.strip()
+
+        data = json.loads(raw)
+        data["error"] = None
+        return data
+
+    except json.JSONDecodeError as e:
+        return {"error": f"JSON_PARSE_ERROR: {str(e)}"}
+    except Exception as e:
+        err_str = str(e)
+        if "API_KEY_INVALID" in err_str or "API key not valid" in err_str:
+            return {"error": "INVALID_API_KEY"}
+        if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+            return {"error": "RATE_LIMIT_EXCEEDED"}
+        if "503" in err_str or "UNAVAILABLE" in err_str:
+            return {"error": "SERVICE_UNAVAILABLE"}
+        return {"error": err_str}

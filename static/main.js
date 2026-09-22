@@ -308,12 +308,18 @@ function renderTabContent(tc) {
     <div class="ai-panel">
       <div class="ai-panel-header">
         <div class="ai-panel-title">✨ AI Resume Enhancement — ${t.label}</div>
-        <button class="ai-enhance-btn" id="ai-btn-${tc}" onclick="runEnhancement('${tc}')">
-          ${hasResume ? "✨ Enhance My Resume" : "✨ Generate Suggestions"}
-        </button>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+          <button class="ai-enhance-btn" id="ai-btn-${tc}" onclick="runEnhancement('${tc}')">
+            ${hasResume ? "✨ Enhance My Resume" : "✨ Generate Suggestions"}
+          </button>
+          <button class="tailor-btn" id="tailor-btn-${tc}" onclick="runTailorResume('${tc}')">
+            🪄 Tailor Full Resume
+          </button>
+        </div>
       </div>
-      ${!hasResume ? `<p style="color:var(--muted);font-size:0.85rem">No resume provided for this track — AI will generate general suggestions based on the JD. Add your resume above for personalised advice.</p>` : `<p style="color:var(--accent2);font-size:0.85rem">✓ Resume loaded for this track. Click to get personalised suggestions.</p>`}
+      ${!hasResume ? `<p style="color:var(--muted);font-size:0.85rem">No resume provided for this track — AI will generate general suggestions based on the JD. Add your resume above for personalised advice.</p>` : `<p style="color:var(--accent2);font-size:0.85rem">✓ Resume loaded for this track. Click to get personalised suggestions or generate a full tailored ATS resume.</p>`}
       <div id="ai-result-${tc}"></div>
+      <div id="tailor-result-${tc}"></div>
     </div>
   `;
 }
@@ -891,4 +897,119 @@ function renderBtAiResult(data) {
   document.getElementById("bt-ai-content").innerHTML = html;
   document.getElementById("bt-ai-result").classList.remove("hidden");
   document.getElementById("bt-ai-result").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+/* ═══════════════════════════ AI FULL RESUME TAILORER ════════════════ */
+
+window._tailoredResumes = {};
+
+async function runTailorResume(tc) {
+  const jdText = getJdText();
+  if (!jdText) { alert("Please analyse a JD first."); return; }
+
+  const btn = document.getElementById(`tailor-btn-${tc}`);
+  const resultEl = document.getElementById(`tailor-result-${tc}`);
+  btn.disabled = true;
+  btn.innerHTML = `<span class="ai-spinner"></span> Tailoring Full Resume…`;
+  resultEl.innerHTML = "";
+
+  try {
+    const resp = await fetch("/tailor_resume", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jd_text: jdText, resume_text: resumeTexts[tc] || "", track: tc }),
+    });
+    const data = await resp.json();
+
+    if (data.error === "NO_API_KEY" || data.error === "INVALID_API_KEY") {
+      document.getElementById("api-key-banner").classList.remove("hidden");
+      resultEl.innerHTML = `<p class="warn-msg">⚠ ${data.error === "INVALID_API_KEY" ? "API key is invalid." : "Gemini API key not configured."}</p>`;
+      return;
+    }
+    if (data.error === "RATE_LIMIT_EXCEEDED") {
+      resultEl.innerHTML = `<div style="background:rgba(255,169,77,0.1);border:1px solid rgba(255,169,77,0.35);border-radius:8px;padding:0.75rem 0.9rem;margin-top:0.75rem;font-size:0.83rem"><div style="font-weight:600;color:var(--warn);margin-bottom:0.25rem">⏱ Gemini Rate Limit Reached (Free Tier)</div><div>Please wait ~30 seconds and try again.</div></div>`;
+      return;
+    }
+    if (data.error) {
+      resultEl.innerHTML = `<p class="warn-msg">⚠ Error: ${escHtml(data.error)}</p>`;
+      return;
+    }
+
+    window._tailoredResumes[tc] = data;
+    renderTailoredResume(tc, data);
+
+  } catch (e) {
+    resultEl.innerHTML = `<p class="warn-msg">✗ Request failed: ${escHtml(e.message)}</p>`;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = "🪄 Regenerate Full Resume";
+  }
+}
+
+function renderTailoredResume(tc, data) {
+  const resultEl = document.getElementById(`tailor-result-${tc}`);
+  const md = data.full_markdown || "";
+
+  let html = `
+    <div class="tailor-res-card">
+      <div class="tailor-header">
+        <div class="tailor-title-badge">🎯 AI-Tailored Executive Resume (${escHtml(data.job_title || tc)})</div>
+        <div class="tailor-actions">
+          <button class="tailor-action-btn" onclick="copyTailoredMd('${tc}')">📋 Copy Markdown</button>
+          <button class="tailor-action-btn" onclick="downloadDocxFile('${tc}')">📥 Download Word (.docx)</button>
+          <button class="tailor-action-btn" onclick="downloadTxtFile('${tc}')">📄 Download Text (.txt)</button>
+        </div>
+      </div>
+      <div class="tailor-md-box">${escHtml(md)}</div>
+    </div>`;
+
+  resultEl.innerHTML = html;
+  resultEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+async function downloadDocxFile(tc) {
+  const data = window._tailoredResumes[tc];
+  if (!data || !data.full_markdown) return;
+
+  const filename = `${tc}_Tailored_Resume.docx`;
+  try {
+    const resp = await fetch("/download_docx", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ markdown_text: data.full_markdown, filename: filename }),
+    });
+    const blob = await resp.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  } catch(e) {
+    alert("Download failed: " + e.message);
+  }
+}
+
+function downloadTxtFile(tc) {
+  const data = window._tailoredResumes[tc];
+  if (!data || !data.full_markdown) return;
+  const blob = new Blob([data.full_markdown], { type: "text/plain;charset=utf-8" });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${tc}_Tailored_Resume.txt`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}
+
+function copyTailoredMd(tc) {
+  const data = window._tailoredResumes[tc];
+  if (!data || !data.full_markdown) return;
+  navigator.clipboard.writeText(data.full_markdown).then(() => {
+    alert("Tailored Resume copied to clipboard!");
+  });
 }

@@ -131,6 +131,65 @@ def enhance_all():
     })
 
 
+# ── AI TAILOR FULL RESUME ─────────────────────────────────────────────────────
+@app.route("/tailor_resume", methods=["POST"])
+def tailor_resume():
+    data = request.get_json(force=True)
+    jd_text = data.get("jd_text", "").strip()
+    resume_text = data.get("resume_text", "").strip()
+    track_code = data.get("track", "AI").strip().upper()
+
+    if not jd_text:
+        return jsonify({"error": "Job description is required."}), 400
+
+    try:
+        from scorer import score_jd
+        scoring_result = score_jd(jd_text)
+        scored_kws = scoring_result["tracks"].get(track_code, {}).get("keywords", [])
+    except Exception:
+        scored_kws = []
+
+    from ai_enhancer import tailor_full_resume
+    result = tailor_full_resume(jd_text, resume_text, track_code, scored_kws)
+    return jsonify(result)
+
+
+# ── DOWNLOAD DOCX ATTACHMENT ──────────────────────────────────────────────────
+@app.route("/download_docx", methods=["POST"])
+def download_docx():
+    from io import BytesIO
+    from docx import Document
+    from flask import send_file
+
+    data = request.get_json(force=True)
+    markdown_text = data.get("markdown_text", "").strip()
+    filename = data.get("filename", "Tailored_Resume.docx")
+
+    doc = Document()
+    for line in markdown_text.splitlines():
+        line_str = line.strip()
+        if line_str.startswith("# "):
+            doc.add_heading(line_str[2:], level=1)
+        elif line_str.startswith("## "):
+            doc.add_heading(line_str[3:], level=2)
+        elif line_str.startswith("### "):
+            doc.add_heading(line_str[4:], level=3)
+        elif line_str.startswith("- ") or line_str.startswith("* "):
+            doc.add_paragraph(line_str[2:], style='List Bullet')
+        elif line_str:
+            doc.add_paragraph(line_str)
+
+    target = BytesIO()
+    doc.save(target)
+    target.seek(0)
+    return send_file(
+        target,
+        mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        as_attachment=True,
+        download_name=filename
+    )
+
+
 # ── AI PICK BEST TRACK ────────────────────────────────────────────────────────
 @app.route("/pick_track", methods=["POST"])
 def pick_track():
