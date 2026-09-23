@@ -50,10 +50,23 @@ header .tracks-line {
 /* ── MAIN ── */
 main {
   flex: 1;
-  max-width: 960px;
-  margin: 2rem auto;
-  padding: 0 1.5rem;
+  max-width: 1400px;
+  margin: 1.25rem auto;
+  padding: 0 1.25rem;
   width: 100%;
+}
+
+/* ── DASHBOARD GRID ── */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+@media (max-width: 1050px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ── CARD ── */
@@ -61,9 +74,13 @@ main {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 1.75rem;
+  padding: 1.5rem;
   box-shadow: var(--shadow);
 }
+.compact-card {
+  padding: 1.15rem 1.25rem;
+}
+
 
 /* ── INPUT SECTION ── */
 .input-section h2 { font-size: 1.15rem; font-weight: 600; margin-bottom: 1rem; }
@@ -129,20 +146,68 @@ button.secondary:hover { color: var(--text); }
 /* ── SUMMARY GRID ── */
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.65rem;
+}
+@media (max-width: 600px) {
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
 }
 .summary-card {
-  background: var(--surface);
+  background: var(--surface2);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1.2rem 1.4rem;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
   cursor: pointer;
   transition: border-color 0.2s, transform 0.1s;
   position: relative;
   overflow: hidden;
 }
+.summary-card:hover { transform: translateY(-2px); }
+.summary-card.active { border-color: var(--accent); }
+
+/* ── RESULTS HUB TABS ── */
+.main-results-hub {
+  padding: 1.25rem 1.5rem;
+}
+.hub-tab-bar {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.75rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+.hub-tab {
+  background: var(--surface2);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 0.5rem 1.1rem;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.hub-tab:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+.hub-tab.active {
+  background: rgba(108, 99, 255, 0.2);
+  color: var(--accent2);
+  border-color: var(--accent2);
+  box-shadow: 0 0 10px rgba(0, 212, 170, 0.15);
+}
+.hub-view-panel {
+  animation: hubFadeIn 0.25s ease-out;
+}
+@keyframes hubFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .summary-card:hover { transform: translateY(-2px); }
 .summary-card.active { border-color: var(--accent); }
 .summary-card::before {

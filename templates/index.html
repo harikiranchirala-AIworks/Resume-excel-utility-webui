@@ -13,274 +13,320 @@
     <div class="header-inner">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem">
         <div>
-          <h1>&#127919; JD-to-Resume Matching Utility</h1>
+          <h1>🎯 JD-to-Resume Matching Utility</h1>
           <p class="subtitle">Automated Job Description analysis across 4 professional tracks</p>
         </div>
         <div>
-          <button class="tailor-action-btn" style="background:var(--surface2);border-color:var(--accent);color:var(--accent2);font-weight:700;padding:0.5rem 1rem" onclick="openHistoryModal()">
+          <button class="tailor-action-btn" style="background:var(--surface2);border-color:var(--accent);color:var(--accent2);font-weight:700;padding:0.45rem 0.95rem" onclick="openHistoryModal()">
             💾 Saved Applications (<span id="history-count">0</span>)
           </button>
         </div>
       </div>
-      <p class="tracks-line" style="margin-top:0.5rem">AI Transformation &nbsp;&bull;&nbsp; Technical Program Manager &nbsp;&bull;&nbsp; IT Delivery &nbsp;&bull;&nbsp; Product Manager</p>
+      <p class="tracks-line" style="margin-top:0.4rem">AI Transformation &nbsp;&bull;&nbsp; Technical Program Manager &nbsp;&bull;&nbsp; IT Delivery &nbsp;&bull;&nbsp; Product Manager</p>
     </div>
   </header>
 
-  <main>
+  <main class="main-container">
 
-    <!-- ── JD INPUT SECTION ── -->
-    <section class="card">
-      <h2 class="section-title">&#128196; Job Description</h2>
+    <!-- ── DUAL-COLUMN TOP DASHBOARD GRID ── -->
+    <div class="dashboard-grid">
 
-      <!-- Input mode toggle -->
-      <div class="toggle-group" id="jd-mode-toggle">
-        <button class="toggle-btn active" data-mode="paste" onclick="setJdMode('paste')">Paste JD</button>
-        <button class="toggle-btn" data-mode="url" onclick="setJdMode('url')">Fetch from URL</button>
-      </div>
+      <!-- LEFT COLUMN: Input & Resumes Workspace -->
+      <div class="dashboard-col left-col">
+        
+        <!-- JD Input Section -->
+        <section class="card compact-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;flex-wrap:wrap;gap:0.5rem">
+            <h2 class="section-title" style="margin:0">📄 Job Description</h2>
+            <div class="toggle-group" id="jd-mode-toggle" style="margin:0">
+              <button class="toggle-btn active" data-mode="paste" onclick="setJdMode('paste')">Paste JD</button>
+              <button class="toggle-btn" data-mode="url" onclick="setJdMode('url')">Fetch URL</button>
+            </div>
+          </div>
 
-      <!-- Paste mode -->
-      <div id="jd-paste-panel">
-        <textarea id="jd-input" rows="9" placeholder="Paste the full job description here..."></textarea>
-      </div>
+          <!-- Paste mode -->
+          <div id="jd-paste-panel">
+            <textarea id="jd-input" rows="7" placeholder="Paste the full job description here..."></textarea>
+          </div>
 
-      <!-- URL mode -->
-      <div id="jd-url-panel" class="hidden">
-        <div class="url-row">
-          <input type="url" id="jd-url-input" placeholder="https://careers.example.com/job/12345" />
-          <button onclick="fetchJdFromUrl()" id="fetch-btn">&#8599; Fetch</button>
+          <!-- URL mode -->
+          <div id="jd-url-panel" class="hidden">
+            <div class="url-row">
+              <input type="url" id="jd-url-input" placeholder="https://careers.example.com/job/12345" />
+              <button onclick="fetchJdFromUrl()" id="fetch-btn">&#8599; Fetch</button>
+            </div>
+            <p id="url-warning" class="warn-msg hidden"></p>
+            <p id="url-success" class="success-msg hidden"></p>
+            <textarea id="jd-url-text" rows="5" placeholder="Fetched JD text will appear here (editable)..." class="mt-1"></textarea>
+          </div>
+
+          <div class="input-actions" style="margin-top:0.6rem">
+            <button id="score-btn" onclick="submitJD()">⚡ Analyse JD</button>
+            <button id="full-analysis-btn" class="full-btn" onclick="runFullAnalysis()">🌟 Full Analysis</button>
+            <button class="secondary" onclick="clearAll()">✕ Clear</button>
+          </div>
+          <p class="input-hint" style="margin-top:0.35rem">🌟 Full Analysis = score + AI-enhance all 4 tracks at once</p>
+          <p id="error-msg" class="error-msg hidden"></p>
+        </section>
+
+        <!-- Resumes Input Section (Collapsible) -->
+        <section class="card compact-card mt-card" id="resume-section">
+          <div class="section-header-row" style="margin-bottom:0.4rem">
+            <h2 class="section-title" style="margin:0">📋 Your Resumes <span class="badge-optional">optional</span></h2>
+            <button class="toggle-collapse" onclick="toggleSection('resume-body')">⌄</button>
+          </div>
+          <p class="section-hint" style="margin-bottom:0.5rem">Upload or paste candidate resumes to generate AI tailored Executive Resumes.</p>
+
+          <div id="resume-body">
+            <div class="resume-tabs" id="resume-tab-bar">
+              <button class="resume-tab active" data-track="AI" onclick="switchResumeTab('AI')">🤖 AI Track</button>
+              <button class="resume-tab" data-track="TPM" onclick="switchResumeTab('TPM')">📊 TPM Track</button>
+              <button class="resume-tab" data-track="ITDM" onclick="switchResumeTab('ITDM')">💻 ITDM Track</button>
+              <button class="resume-tab" data-track="PM" onclick="switchResumeTab('PM')">📦 PM Track</button>
+            </div>
+
+            <div id="resume-panels">
+              <!-- AI -->
+              <div class="resume-panel" data-track="AI">
+                <div class="resume-input-toggle">
+                  <button class="toggle-btn active" data-rtab="paste" onclick="setResumeMode('AI','paste')">Paste</button>
+                  <button class="toggle-btn" data-rtab="upload" onclick="setResumeMode('AI','upload')">Upload File</button>
+                </div>
+                <textarea class="resume-textarea" data-track="AI" rows="6" placeholder="Paste your AI Transformation Manager resume here..."></textarea>
+                <div class="upload-area hidden" data-track="AI">
+                  <label class="file-label">
+                    <span>📄 Choose .txt / .pdf / .docx</span>
+                    <input type="file" accept=".txt,.pdf,.docx" onchange="uploadResume(this,'AI')" />
+                  </label>
+                  <span class="upload-status" data-track="AI"></span>
+                </div>
+              </div>
+              <!-- TPM -->
+              <div class="resume-panel hidden" data-track="TPM">
+                <div class="resume-input-toggle">
+                  <button class="toggle-btn active" data-rtab="paste" onclick="setResumeMode('TPM','paste')">Paste</button>
+                  <button class="toggle-btn" data-rtab="upload" onclick="setResumeMode('TPM','upload')">Upload File</button>
+                </div>
+                <textarea class="resume-textarea" data-track="TPM" rows="6" placeholder="Paste your Technical Program Manager resume here..."></textarea>
+                <div class="upload-area hidden" data-track="TPM">
+                  <label class="file-label">
+                    <span>📄 Choose .txt / .pdf / .docx</span>
+                    <input type="file" accept=".txt,.pdf,.docx" onchange="uploadResume(this,'TPM')" />
+                  </label>
+                  <span class="upload-status" data-track="TPM"></span>
+                </div>
+              </div>
+              <!-- ITDM -->
+              <div class="resume-panel hidden" data-track="ITDM">
+                <div class="resume-input-toggle">
+                  <button class="toggle-btn active" data-rtab="paste" onclick="setResumeMode('ITDM','paste')">Paste</button>
+                  <button class="toggle-btn" data-rtab="upload" onclick="setResumeMode('ITDM','upload')">Upload File</button>
+                </div>
+                <textarea class="resume-textarea" data-track="ITDM" rows="6" placeholder="Paste your IT Delivery Manager resume here..."></textarea>
+                <div class="upload-area hidden" data-track="ITDM">
+                  <label class="file-label">
+                    <span>📄 Choose .txt / .pdf / .docx</span>
+                    <input type="file" accept=".txt,.pdf,.docx" onchange="uploadResume(this,'ITDM')" />
+                  </label>
+                  <span class="upload-status" data-track="ITDM"></span>
+                </div>
+              </div>
+              <!-- PM -->
+              <div class="resume-panel hidden" data-track="PM">
+                <div class="resume-input-toggle">
+                  <button class="toggle-btn active" data-rtab="paste" onclick="setResumeMode('PM','paste')">Paste</button>
+                  <button class="toggle-btn" data-rtab="upload" onclick="setResumeMode('PM','upload')">Upload File</button>
+                </div>
+                <textarea class="resume-textarea" data-track="PM" rows="6" placeholder="Paste your Product Manager resume here..."></textarea>
+                <div class="upload-area hidden" data-track="PM">
+                  <label class="file-label">
+                    <span>📄 Choose .txt / .pdf / .docx</span>
+                    <input type="file" accept=".txt,.pdf,.docx" onchange="uploadResume(this,'PM')" />
+                  </label>
+                  <span class="upload-status" data-track="PM"></span>
+                </div>
+              </div>
+            </div><!-- /resume-panels -->
+          </div><!-- /resume-body -->
+        </section>
+
+      </div><!-- /left-col -->
+
+      <!-- RIGHT COLUMN: Instant Match & Intelligence Panel -->
+      <div class="dashboard-col right-col">
+
+        <!-- Empty state placeholder prior to scoring -->
+        <div id="empty-intelligence-card" class="card compact-card empty-intel-card">
+          <div style="text-align:center;padding:2.5rem 1rem;color:var(--muted)">
+            <div style="font-size:2.8rem;margin-bottom:0.5rem">🎯</div>
+            <div style="font-weight:700;font-size:1.1rem;color:var(--text);margin-bottom:0.35rem">AI Match & Intelligence Panel</div>
+            <p style="font-size:0.85rem;max-width:380px;margin:0 auto">Paste a Job Description on the left and click <strong style="color:var(--accent)">"⚡ Analyse JD"</strong> to instantly view your 4-track match scores, signals, and keyword hits.</p>
+          </div>
         </div>
-        <p id="url-warning" class="warn-msg hidden"></p>
-        <p id="url-success" class="success-msg hidden"></p>
-        <textarea id="jd-url-text" rows="7" placeholder="Fetched JD text will appear here (editable)..." class="mt-1"></textarea>
-      </div>
 
-      <div class="input-actions">
-        <button id="score-btn" onclick="submitJD()">&#9889; Analyse JD</button>
-        <button id="full-analysis-btn" class="full-btn" onclick="runFullAnalysis()">&#127775; Full Analysis</button>
-        <button class="secondary" onclick="clearAll()">&#10005; Clear All</button>
-      </div>
-      <p class="input-hint">&#127775; Full Analysis = score + AI-enhance all 4 tracks at once</p>
-      <p id="error-msg" class="error-msg hidden"></p>
-    </section>
-
-    <!-- ── RESUME INPUT SECTION ── -->
-    <section class="card mt-card" id="resume-section">
-      <div class="section-header-row">
-        <h2 class="section-title">&#128203; Your Resumes <span class="badge-optional">optional</span></h2>
-        <button class="toggle-collapse" onclick="toggleSection('resume-body')">&#8964;</button>
-      </div>
-      <p class="section-hint">Provide one resume per track for tailored AI enhancement suggestions.</p>
-
-      <div id="resume-body">
-        <div class="resume-tabs" id="resume-tab-bar">
-          <button class="resume-tab active" data-track="AI" onclick="switchResumeTab('AI')">&#129504; AI Track</button>
-          <button class="resume-tab" data-track="TPM" onclick="switchResumeTab('TPM')">&#128202; TPM Track</button>
-          <button class="resume-tab" data-track="ITDM" onclick="switchResumeTab('ITDM')">&#128187; ITDM Track</button>
-          <button class="resume-tab" data-track="PM" onclick="switchResumeTab('PM')">&#128230; PM Track</button>
-        </div>
-
-        <div id="resume-panels">
-          <!-- AI -->
-          <div class="resume-panel" data-track="AI">
-            <div class="resume-input-toggle">
-              <button class="toggle-btn active" data-rtab="paste" onclick="setResumeMode('AI','paste')">Paste</button>
-              <button class="toggle-btn" data-rtab="upload" onclick="setResumeMode('AI','upload')">Upload File</button>
+        <!-- Active Intelligence Panel (Visible after scoring) -->
+        <div id="active-intelligence-panel" class="hidden">
+          
+          <!-- Best Track Recommendation Banner -->
+          <div class="card best-track-banner" id="best-track-banner" style="margin-bottom:0.75rem">
+            <div class="bt-left">
+              <div class="bt-label">🎯 Recommended Track</div>
+              <div class="bt-track-name" id="bt-track-name">—</div>
+              <div class="bt-score-row">
+                <span class="bt-pct" id="bt-pct">—</span>
+                <span class="bt-level-badge" id="bt-level-badge"></span>
+                <span class="bt-runner-up" id="bt-runner-up"></span>
+              </div>
             </div>
-            <textarea class="resume-textarea" data-track="AI" rows="8" placeholder="Paste your AI Transformation Manager resume here..."></textarea>
-            <div class="upload-area hidden" data-track="AI">
-              <label class="file-label">
-                <span>&#128196; Choose .txt / .pdf / .docx</span>
-                <input type="file" accept=".txt,.pdf,.docx" onchange="uploadResume(this,'AI')" />
-              </label>
-              <span class="upload-status" data-track="AI"></span>
+            <div class="bt-right">
+              <button class="ai-enhance-btn" id="bt-ai-btn" onclick="runPickTrack()">🧠 Ask AI Why</button>
             </div>
           </div>
-          <!-- TPM -->
-          <div class="resume-panel hidden" data-track="TPM">
-            <div class="resume-input-toggle">
-              <button class="toggle-btn active" data-rtab="paste" onclick="setResumeMode('TPM','paste')">Paste</button>
-              <button class="toggle-btn" data-rtab="upload" onclick="setResumeMode('TPM','upload')">Upload File</button>
-            </div>
-            <textarea class="resume-textarea" data-track="TPM" rows="8" placeholder="Paste your Technical Program Manager resume here..."></textarea>
-            <div class="upload-area hidden" data-track="TPM">
-              <label class="file-label">
-                <span>&#128196; Choose .txt / .pdf / .docx</span>
-                <input type="file" accept=".txt,.pdf,.docx" onchange="uploadResume(this,'TPM')" />
-              </label>
-              <span class="upload-status" data-track="TPM"></span>
-            </div>
-          </div>
-          <!-- ITDM -->
-          <div class="resume-panel hidden" data-track="ITDM">
-            <div class="resume-input-toggle">
-              <button class="toggle-btn active" data-rtab="paste" onclick="setResumeMode('ITDM','paste')">Paste</button>
-              <button class="toggle-btn" data-rtab="upload" onclick="setResumeMode('ITDM','upload')">Upload File</button>
-            </div>
-            <textarea class="resume-textarea" data-track="ITDM" rows="8" placeholder="Paste your IT Delivery Manager resume here..."></textarea>
-            <div class="upload-area hidden" data-track="ITDM">
-              <label class="file-label">
-                <span>&#128196; Choose .txt / .pdf / .docx</span>
-                <input type="file" accept=".txt,.pdf,.docx" onchange="uploadResume(this,'ITDM')" />
-              </label>
-              <span class="upload-status" data-track="ITDM"></span>
-            </div>
-          </div>
-          <!-- PM -->
-          <div class="resume-panel hidden" data-track="PM">
-            <div class="resume-input-toggle">
-              <button class="toggle-btn active" data-rtab="paste" onclick="setResumeMode('PM','paste')">Paste</button>
-              <button class="toggle-btn" data-rtab="upload" onclick="setResumeMode('PM','upload')">Upload File</button>
-            </div>
-            <textarea class="resume-textarea" data-track="PM" rows="8" placeholder="Paste your Product Manager resume here..."></textarea>
-            <div class="upload-area hidden" data-track="PM">
-              <label class="file-label">
-                <span>&#128196; Choose .txt / .pdf / .docx</span>
-                <input type="file" accept=".txt,.pdf,.docx" onchange="uploadResume(this,'PM')" />
-              </label>
-              <span class="upload-status" data-track="PM"></span>
-            </div>
-          </div>
-        </div><!-- /resume-panels -->
-      </div><!-- /resume-body -->
-    </section>
 
-    <!-- ── LOADING ── -->
+          <!-- AI deep-pick result -->
+          <div id="bt-ai-result" class="hidden card bt-ai-card" style="margin-bottom:0.75rem">
+            <div id="bt-ai-content"></div>
+          </div>
+
+          <!-- 4-Track Summary Cards (2x2 Grid) -->
+          <div class="summary-grid" id="summary-grid" style="margin-bottom:0.75rem"></div>
+
+          <!-- Job Intelligence & Signals Card -->
+          <div class="card job-signals-card" id="job-signals-card">
+            <div class="signals-header" style="display:flex;justify-content:space-between;align-items:center">
+              <span>💼 Job Intelligence & Signals</span>
+              <button class="tailor-btn" style="font-size:0.78rem;padding:0.3rem 0.75rem" id="save-session-btn" onclick="saveCurrentSession()">
+                💾 Save Session
+              </button>
+            </div>
+            <div class="signals-grid">
+              <div class="signal-item">
+                <span class="signal-icon">💰</span>
+                <div class="signal-info">
+                  <span class="signal-label">Salary Range</span>
+                  <span class="signal-val" id="sig-salary">—</span>
+                </div>
+              </div>
+              <div class="signal-item">
+                <span class="signal-icon">⏳</span>
+                <div class="signal-info">
+                  <span class="signal-label">Experience Required</span>
+                  <span class="signal-val" id="sig-exp">—</span>
+                </div>
+              </div>
+              <div class="signal-item">
+                <span class="signal-icon">🏢</span>
+                <div class="signal-info">
+                  <span class="signal-label">Work Mode</span>
+                  <span class="signal-val" id="sig-work">—</span>
+                </div>
+              </div>
+              <div class="signal-item">
+                <span class="signal-icon">📈</span>
+                <div class="signal-info">
+                  <span class="signal-label">Seniority Level</span>
+                  <span class="signal-val" id="sig-seniority">—</span>
+                </div>
+              </div>
+              <div class="signal-item">
+                <span class="signal-icon">🌐</span>
+                <div class="signal-info">
+                  <span class="signal-label">Industry Signals</span>
+                  <span class="signal-val" id="sig-industry">—</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /active-intelligence-panel -->
+
+      </div><!-- /right-col -->
+
+    </div><!-- /dashboard-grid -->
+
+    <!-- Loading Spinner -->
     <div id="loading" class="hidden">
       <div class="spinner"></div>
       <p>Scoring against keyword bank...</p>
     </div>
 
-    <!-- ── RESULTS ── -->
-    <section id="results" class="hidden">
-      <!-- ── JOB INTELLIGENCE & SIGNALS ── -->
-      <div class="card job-signals-card" id="job-signals-card">
-        <div class="signals-header" style="display:flex;justify-content:space-between;align-items:center">
-          <span>💼 Job Intelligence & Signals</span>
-          <button class="tailor-btn" style="font-size:0.8rem;padding:0.35rem 0.85rem" id="save-session-btn" onclick="saveCurrentSession()">
-            💾 Save Session
-          </button>
-        </div>
-        <div class="signals-grid">
-          <div class="signal-item">
-            <span class="signal-icon">💰</span>
-            <div class="signal-info">
-              <span class="signal-label">Salary Range</span>
-              <span class="signal-val" id="sig-salary">—</span>
-            </div>
-          </div>
-          <div class="signal-item">
-            <span class="signal-icon">⏳</span>
-            <div class="signal-info">
-              <span class="signal-label">Experience Required</span>
-              <span class="signal-val" id="sig-exp">—</span>
-            </div>
-          </div>
-          <div class="signal-item">
-            <span class="signal-icon">🏢</span>
-            <div class="signal-info">
-              <span class="signal-label">Work Mode</span>
-              <span class="signal-val" id="sig-work">—</span>
-            </div>
-          </div>
-          <div class="signal-item">
-            <span class="signal-icon">📈</span>
-            <div class="signal-info">
-              <span class="signal-label">Seniority Level</span>
-              <span class="signal-val" id="sig-seniority">—</span>
-            </div>
-          </div>
-          <div class="signal-item">
-            <span class="signal-icon">🌐</span>
-            <div class="signal-info">
-              <span class="signal-label">Industry Signals</span>
-              <span class="signal-val" id="sig-industry">—</span>
-            </div>
-          </div>
-        </div>
-      </div>
+    <!-- ── UNIFIED RESULTS TAB HUB ── -->
+    <section id="results" class="hidden mt-card">
+      <div class="card main-results-hub">
 
-      <!-- ── JD KEYWORD HIGHLIGHTER ── -->
-      <div class="card mt-card jd-highlighter-card" id="jd-highlighter-card">
-        <div class="hl-header">
-          <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap">
-            <h3 style="margin:0;font-size:1.05rem;color:var(--accent2)">✨ Interactive JD Keyword Highlighter</h3>
-            <span class="hl-count-badge" id="hl-total-hits">0 Hits</span>
-          </div>
+        <!-- Top Results Tab Bar -->
+        <div class="hub-tab-bar" id="hub-tab-bar">
+          <button class="hub-tab active" data-hubtab="highlighter" onclick="switchHubTab('highlighter')">✨ Keyword Highlighter</button>
+          <button class="hub-tab" data-hubtab="breakdown" onclick="switchHubTab('breakdown')">🎯 Track Breakdown & Bullets</button>
+          <button class="hub-tab" data-hubtab="charts" onclick="switchHubTab('charts')">📊 Score Charts & Analytics</button>
+        </div>
 
-          <div class="hl-controls">
-            <div class="hl-filter-group">
-              <label for="hl-track-select" style="font-size:0.8rem;color:var(--muted);font-weight:600">Track Filter:</label>
-              <select id="hl-track-select" class="hl-select" onchange="updateJdHighlights()">
-                <option value="ALL">🎯 All Tracks (Combined)</option>
-                <option value="AI">🤖 AI Transformation</option>
-                <option value="TPM">📊 Technical Program Manager</option>
-                <option value="ITDM">💻 IT Delivery Manager</option>
-                <option value="PM">📦 Product Manager</option>
-              </select>
+        <!-- Tab View 1: ✨ Interactive JD Keyword Highlighter -->
+        <div id="hub-view-highlighter" class="hub-view-panel">
+          <div class="jd-highlighter-card" id="jd-highlighter-card" style="border:none;padding:0;background:transparent">
+            <div class="hl-header">
+              <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap">
+                <h3 style="margin:0;font-size:1.05rem;color:var(--accent2)">✨ Interactive JD Keyword Highlighter</h3>
+                <span class="hl-count-badge" id="hl-total-hits">0 Hits</span>
+              </div>
+
+              <div class="hl-controls">
+                <div class="hl-filter-group">
+                  <label for="hl-track-select" style="font-size:0.8rem;color:var(--muted);font-weight:600">Track Filter:</label>
+                  <select id="hl-track-select" class="hl-select" onchange="updateJdHighlights()">
+                    <option value="ALL">🎯 All Tracks (Combined)</option>
+                    <option value="AI">🤖 AI Transformation</option>
+                    <option value="TPM">📊 Technical Program Manager</option>
+                    <option value="ITDM">💻 IT Delivery Manager</option>
+                    <option value="PM">📦 Product Manager</option>
+                  </select>
+                </div>
+
+                <div class="toggle-group" id="hl-view-toggle">
+                  <button class="toggle-btn active" data-hlmode="highlight" onclick="switchHlView('highlight')">✨ Highlighted</button>
+                  <button class="toggle-btn" data-hlmode="plain" onclick="switchHlView('plain')">📄 Plain JD</button>
+                </div>
+              </div>
             </div>
 
-            <div class="toggle-group" id="hl-view-toggle">
-              <button class="toggle-btn active" data-hlmode="highlight" onclick="switchHlView('highlight')">✨ Highlighted</button>
-              <button class="toggle-btn" data-hlmode="plain" onclick="switchHlView('plain')">📄 Plain JD</button>
+            <div class="hl-legend-bar">
+              <span class="hl-legend-item tier-3">
+                <span class="hl-legend-dot t3"></span> High Weight (3 pts) — <strong id="hl-cnt-t3">0</strong>
+              </span>
+              <span class="hl-legend-item tier-2">
+                <span class="hl-legend-dot t2"></span> Medium Weight (2 pts) — <strong id="hl-cnt-t2">0</strong>
+              </span>
+              <span class="hl-legend-item tier-1">
+                <span class="hl-legend-dot t1"></span> Low Weight (1 pt) — <strong id="hl-cnt-t1">0</strong>
+              </span>
+            </div>
+
+            <div id="hl-content-box" class="hl-content-box"></div>
+          </div>
+        </div>
+
+        <!-- Tab View 2: 🎯 Track Breakdown & Bullets -->
+        <div id="hub-view-breakdown" class="hub-view-panel hidden">
+          <div class="tabs-container" style="border:none;padding:0;background:transparent">
+            <div class="tab-bar" id="tab-bar"></div>
+            <div id="tab-content"></div>
+          </div>
+        </div>
+
+        <!-- Tab View 3: 📊 Score Charts & Analytics -->
+        <div id="hub-view-charts" class="hub-view-panel hidden">
+          <div class="chart-panel-header" style="margin-bottom:1rem">
+            <span class="chart-title">📊 Score Comparison</span>
+            <div class="toggle-group" id="chart-type-toggle">
+              <button class="toggle-btn active" data-chart="radar" onclick="switchChart('radar')">Radar</button>
+              <button class="toggle-btn" data-chart="bar" onclick="switchChart('bar')">Bar</button>
             </div>
           </div>
-        </div>
-
-        <div class="hl-legend-bar">
-          <span class="hl-legend-item tier-3">
-            <span class="hl-legend-dot t3"></span> High Weight (3 pts) — <strong id="hl-cnt-t3">0</strong>
-          </span>
-          <span class="hl-legend-item tier-2">
-            <span class="hl-legend-dot t2"></span> Medium Weight (2 pts) — <strong id="hl-cnt-t2">0</strong>
-          </span>
-          <span class="hl-legend-item tier-1">
-            <span class="hl-legend-dot t1"></span> Low Weight (1 pt) — <strong id="hl-cnt-t1">0</strong>
-          </span>
-        </div>
-
-        <div id="hl-content-box" class="hl-content-box"></div>
-      </div>
-
-      <div class="summary-grid mt-card" id="summary-grid"></div>
-
-      <!-- ── BEST TRACK BANNER ── -->
-      <div class="card mt-card best-track-banner" id="best-track-banner">
-        <div class="bt-left">
-          <div class="bt-label">&#127919; Recommended Track</div>
-          <div class="bt-track-name" id="bt-track-name">—</div>
-          <div class="bt-score-row">
-            <span class="bt-pct" id="bt-pct">—</span>
-            <span class="bt-level-badge" id="bt-level-badge"></span>
-            <span class="bt-runner-up" id="bt-runner-up"></span>
+          <div class="chart-wrap">
+            <canvas id="scoreChart"></canvas>
           </div>
         </div>
-        <div class="bt-right">
-          <button class="ai-enhance-btn" id="bt-ai-btn" onclick="runPickTrack()">&#129504; Ask AI Why</button>
-        </div>
-      </div>
 
-      <!-- AI deep-pick result (appears below banner) -->
-      <div id="bt-ai-result" class="hidden card mt-card bt-ai-card">
-        <div id="bt-ai-content"></div>
-      </div>
-
-      <!-- ── CHART PANEL ── -->
-      <div class="card mt-card chart-panel" id="chart-panel">
-        <div class="chart-panel-header">
-          <span class="chart-title">&#128202; Score Comparison</span>
-          <div class="toggle-group" id="chart-type-toggle">
-            <button class="toggle-btn active" data-chart="radar" onclick="switchChart('radar')">Radar</button>
-            <button class="toggle-btn" data-chart="bar" onclick="switchChart('bar')">Bar</button>
-          </div>
-        </div>
-        <div class="chart-wrap">
-          <canvas id="scoreChart"></canvas>
-        </div>
-      </div>
-
-      <div class="tabs-container card">
-        <div class="tab-bar" id="tab-bar"></div>
-        <div id="tab-content"></div>
       </div>
     </section>
 
@@ -290,12 +336,12 @@
       <!-- Per-track progress while loading -->
       <div id="full-analysis-loading" class="hidden">
         <div class="card fa-loading-card">
-          <div class="fa-loading-title">&#127775; Running Full Analysis — all 4 tracks in parallel&hellip;</div>
+          <div class="fa-loading-title">🌟 Running Full Analysis — all 4 tracks in parallel&hellip;</div>
           <div class="fa-track-progress" id="fa-track-progress">
-            <div class="fa-track-row" data-track="AI">   <span class="fa-track-label">&#129504; AI Transformation</span>  <span class="fa-track-status" data-track="AI">&#9711; Queued</span></div>
-            <div class="fa-track-row" data-track="TPM">  <span class="fa-track-label">&#128202; Technical PM</span>       <span class="fa-track-status" data-track="TPM">&#9711; Queued</span></div>
-            <div class="fa-track-row" data-track="ITDM"> <span class="fa-track-label">&#128187; IT Delivery</span>         <span class="fa-track-status" data-track="ITDM">&#9711; Queued</span></div>
-            <div class="fa-track-row" data-track="PM">   <span class="fa-track-label">&#128230; Product Manager</span>    <span class="fa-track-status" data-track="PM">&#9711; Queued</span></div>
+            <div class="fa-track-row" data-track="AI">   <span class="fa-track-label">🤖 AI Transformation</span>  <span class="fa-track-status" data-track="AI">◯ Queued</span></div>
+            <div class="fa-track-row" data-track="TPM">  <span class="fa-track-label">📊 Technical PM</span>       <span class="fa-track-status" data-track="TPM">◯ Queued</span></div>
+            <div class="fa-track-row" data-track="ITDM"> <span class="fa-track-label">💻 IT Delivery</span>         <span class="fa-track-status" data-track="ITDM">◯ Queued</span></div>
+            <div class="fa-track-row" data-track="PM">   <span class="fa-track-label">📦 Product Manager</span>    <span class="fa-track-status" data-track="PM">◯ Queued</span></div>
           </div>
         </div>
       </div>
@@ -303,8 +349,8 @@
       <!-- Results grid -->
       <div id="full-analysis-grid" class="hidden">
         <div class="fa-header-row">
-          <h2 class="section-title" style="margin:0">&#127775; Full Analysis Results</h2>
-          <button class="secondary" style="font-size:0.82rem;padding:0.4rem 0.9rem" onclick="clearFullAnalysis()">&#10005; Clear</button>
+          <h2 class="section-title" style="margin:0">🌟 Full Analysis Results</h2>
+          <button class="secondary" style="font-size:0.82rem;padding:0.4rem 0.9rem" onclick="clearFullAnalysis()">✕ Clear</button>
         </div>
         <div class="fa-grid" id="fa-grid"></div>
       </div>
@@ -313,7 +359,7 @@
 
     <!-- ── API KEY BANNER ── -->
     <div id="api-key-banner" class="hidden api-key-banner card mt-card">
-      <div class="banner-icon">&#128272;</div>
+      <div class="banner-icon">🔑</div>
       <div class="banner-body">
         <strong>Set up Gemini API Key for AI Enhancement</strong>
         <p>Get your <strong>free</strong> key at <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">aistudio.google.com</a>, then add it to your <code>.env</code> file:</p>

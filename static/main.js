@@ -180,13 +180,39 @@ function clearAll() {
 }
 
 function showLoading(on) { document.getElementById("loading").classList.toggle("hidden", !on); }
-function hideResults() { document.getElementById("results").classList.add("hidden"); }
+function hideResults() {
+  document.getElementById("results")?.classList.add("hidden");
+  document.getElementById("active-intelligence-panel")?.classList.add("hidden");
+  document.getElementById("empty-intelligence-card")?.classList.remove("hidden");
+}
+
 function showError(msg) {
   const el = document.getElementById("error-msg");
   el.textContent = msg; el.classList.remove("hidden");
 }
 
 /* ═══════════════════════════ RENDER RESULTS ════════════════════════ */
+
+let activeHubTab = "highlighter";
+
+function switchHubTab(tabName) {
+  activeHubTab = tabName;
+  document.querySelectorAll("#hub-tab-bar .hub-tab").forEach(b => {
+    b.classList.toggle("active", b.dataset.hubtab === tabName);
+  });
+
+  const views = ["highlighter", "breakdown", "charts"];
+  views.forEach(v => {
+    const el = document.getElementById(`hub-view-${v}`);
+    if (el) el.classList.toggle("hidden", v !== tabName);
+  });
+
+  if (tabName === "charts" && currentData) {
+    renderChart(currentData.tracks, activeChartType);
+  } else if (tabName === "highlighter") {
+    updateJdHighlights();
+  }
+}
 
 function renderResults(data) {
   const { tracks, bullets, matched_keywords, signals } = data;
@@ -202,7 +228,11 @@ function renderResults(data) {
   renderChart(tracks, activeChartType);
   renderBestTrackBanner(data);
   updateJdHighlights();
-  document.getElementById("results").classList.remove("hidden");
+
+  document.getElementById("empty-intelligence-card")?.classList.add("hidden");
+  document.getElementById("active-intelligence-panel")?.classList.remove("hidden");
+  document.getElementById("results")?.classList.remove("hidden");
+
   activateTab(TRACK_ORDER[0]);
   const firstCard = document.querySelector(`.summary-card[data-track="${TRACK_ORDER[0]}"]`);
   if (firstCard) firstCard.classList.add("active");
@@ -218,7 +248,10 @@ function renderSummaryCards(tracks) {
     card.dataset.track = tc;
     card.onclick = () => {
       document.querySelectorAll(".summary-card").forEach(c => c.classList.remove("active"));
-      card.classList.add("active"); activateTab(tc);
+      card.classList.add("active");
+      switchHubTab("breakdown");
+      activateTab(tc);
+      document.getElementById("results")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     };
     card.innerHTML = `
       <div class="track-name">${TRACK_EMOJIS[tc]} ${tc}</div>
