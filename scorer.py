@@ -137,6 +137,7 @@ def score_jd(jd_text: str) -> dict:
                 "score": score,
                 "weighted": weighted,
                 "matched_term": matched_term,
+                "synonyms": synonyms,
                 "notes": row.get("notes", ""),
             })
 

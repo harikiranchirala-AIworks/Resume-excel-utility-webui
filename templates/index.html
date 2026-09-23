@@ -199,6 +199,48 @@
         </div>
       </div>
 
+      <!-- ── JD KEYWORD HIGHLIGHTER ── -->
+      <div class="card mt-card jd-highlighter-card" id="jd-highlighter-card">
+        <div class="hl-header">
+          <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap">
+            <h3 style="margin:0;font-size:1.05rem;color:var(--accent2)">✨ Interactive JD Keyword Highlighter</h3>
+            <span class="hl-count-badge" id="hl-total-hits">0 Hits</span>
+          </div>
+
+          <div class="hl-controls">
+            <div class="hl-filter-group">
+              <label for="hl-track-select" style="font-size:0.8rem;color:var(--muted);font-weight:600">Track Filter:</label>
+              <select id="hl-track-select" class="hl-select" onchange="updateJdHighlights()">
+                <option value="ALL">🎯 All Tracks (Combined)</option>
+                <option value="AI">🤖 AI Transformation</option>
+                <option value="TPM">📊 Technical Program Manager</option>
+                <option value="ITDM">💻 IT Delivery Manager</option>
+                <option value="PM">📦 Product Manager</option>
+              </select>
+            </div>
+
+            <div class="toggle-group" id="hl-view-toggle">
+              <button class="toggle-btn active" data-hlmode="highlight" onclick="switchHlView('highlight')">✨ Highlighted</button>
+              <button class="toggle-btn" data-hlmode="plain" onclick="switchHlView('plain')">📄 Plain JD</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="hl-legend-bar">
+          <span class="hl-legend-item tier-3">
+            <span class="hl-legend-dot t3"></span> High Weight (3 pts) — <strong id="hl-cnt-t3">0</strong>
+          </span>
+          <span class="hl-legend-item tier-2">
+            <span class="hl-legend-dot t2"></span> Medium Weight (2 pts) — <strong id="hl-cnt-t2">0</strong>
+          </span>
+          <span class="hl-legend-item tier-1">
+            <span class="hl-legend-dot t1"></span> Low Weight (1 pt) — <strong id="hl-cnt-t1">0</strong>
+          </span>
+        </div>
+
+        <div id="hl-content-box" class="hl-content-box"></div>
+      </div>
+
       <div class="summary-grid mt-card" id="summary-grid"></div>
 
       <!-- ── BEST TRACK BANNER ── -->

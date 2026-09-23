@@ -201,6 +201,7 @@ function renderResults(data) {
   renderTabs(tracks, bullets, matched_keywords);
   renderChart(tracks, activeChartType);
   renderBestTrackBanner(data);
+  updateJdHighlights();
   document.getElementById("results").classList.remove("hidden");
   activateTab(TRACK_ORDER[0]);
   const firstCard = document.querySelector(`.summary-card[data-track="${TRACK_ORDER[0]}"]`);
@@ -1311,4 +1312,117 @@ async function deleteSession(sessionId) {
   } catch (e) {
     alert("Error deleting session: " + e.message);
   }
+}
+
+/* ═══════════════════════════ JD KEYWORD HIGHLIGHTER ═════════════════ */
+
+let hlViewMode = "highlight"; // "highlight" | "plain"
+
+function switchHlView(mode) {
+  hlViewMode = mode;
+  document.querySelectorAll("#hl-view-toggle .toggle-btn").forEach(b => {
+    b.classList.toggle("active", b.dataset.hlmode === mode);
+  });
+  updateJdHighlights();
+}
+
+function updateJdHighlights() {
+  const jdText = getJdText();
+  const box = document.getElementById("hl-content-box");
+  if (!box || !jdText || !currentData) return;
+
+  if (hlViewMode === "plain") {
+    box.innerHTML = escHtml(jdText);
+    return;
+  }
+
+  const selectedTrack = document.getElementById("hl-track-select")?.value || "ALL";
+
+  // Collect all matched terms
+  const matchedTermsMap = new Map(); // termLower -> { keyword, weight, trackCode }
+  const tracksToScan = (selectedTrack === "ALL") ? TRACK_ORDER : [selectedTrack];
+
+  tracksToScan.forEach(tc => {
+    const kws = currentData.tracks?.[tc]?.keywords || [];
+    kws.forEach(k => {
+      if (k.score > 0) {
+        const kwName = k.keyword;
+        const weight = k.weight;
+        const synonyms = k.synonyms || [];
+        const terms = [kwName].concat(synonyms);
+
+        terms.forEach(t => {
+          const tNorm = t.trim().toLowerCase();
+          if (tNorm && (!matchedTermsMap.has(tNorm) || matchedTermsMap.get(tNorm).weight < weight)) {
+            matchedTermsMap.set(tNorm, {
+              keyword: kwName,
+              weight: weight,
+              trackCode: tc,
+              notes: k.notes || ""
+            });
+          }
+        });
+      }
+    });
+  });
+
+  const jdLower = jdText.toLowerCase();
+  const validTerms = [];
+  matchedTermsMap.forEach((meta, termLower) => {
+    if (termLower && jdLower.includes(termLower)) {
+      validTerms.push({ termLower, meta });
+    }
+  });
+
+  // Sort terms by length descending so multi-word phrases match before single-word subphrases
+  validTerms.sort((a, b) => b.termLower.length - a.termLower.length);
+
+  let safeText = escHtml(jdText);
+  const placeholders = [];
+  let cntT3 = 0, cntT2 = 0, cntT1 = 0;
+
+  validTerms.forEach(({ termLower, meta }) => {
+    const escapedTerm = escapeRegExp(escHtml(termLower));
+    const startBoundary = /^\w/.test(termLower) ? "\\b" : "";
+    const endBoundary = /\w$/.test(termLower) ? "\\b" : "";
+    const regex = new RegExp(`${startBoundary}(${escapedTerm})${endBoundary}`, "gi");
+
+    safeText = safeText.replace(regex, (match) => {
+      if (meta.weight === 3) cntT3++;
+      else if (meta.weight === 2) cntT2++;
+      else if (meta.weight === 1) cntT1++;
+
+      const placeholder = `___HL_TOKEN_${placeholders.length}___`;
+      const tierLabel = meta.weight === 3 ? "High (3 pts)" : meta.weight === 2 ? "Medium (2 pts)" : "Low (1 pt)";
+      const titleAttr = escHtml(`${meta.trackCode} Track • ${tierLabel}: ${meta.keyword}`);
+      
+      placeholders.push({
+        token: placeholder,
+        html: `<mark class="jd-kw-highlight tier-${meta.weight}" title="${titleAttr}">${match}</mark>`
+      });
+      return placeholder;
+    });
+  });
+
+  // Replace placeholders back to HTML
+  placeholders.forEach(p => {
+    safeText = safeText.replace(p.token, p.html);
+  });
+
+  const totalHits = cntT3 + cntT2 + cntT1;
+  const hitsBadge = document.getElementById("hl-total-hits");
+  if (hitsBadge) hitsBadge.textContent = `${totalHits} Keyword Hit${totalHits === 1 ? '' : 's'}`;
+
+  const elT3 = document.getElementById("hl-cnt-t3");
+  if (elT3) elT3.textContent = cntT3;
+  const elT2 = document.getElementById("hl-cnt-t2");
+  if (elT2) elT2.textContent = cntT2;
+  const elT1 = document.getElementById("hl-cnt-t1");
+  if (elT1) elT1.textContent = cntT1;
+
+  box.innerHTML = safeText;
+}
+
+function escapeRegExp(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
