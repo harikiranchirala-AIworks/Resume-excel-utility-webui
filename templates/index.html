@@ -188,6 +188,28 @@
             <div id="bt-ai-content"></div>
           </div>
 
+          <!-- Top AI Resume Enhancement Card (for Recommended Track) -->
+          <div class="card ai-panel" id="top-ai-enhancement-card" style="margin-bottom:0.75rem">
+            <div class="ai-panel-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem">
+              <div class="ai-panel-title" id="top-ai-title" style="font-weight:700;color:var(--accent2);font-size:0.92rem">
+                ✨ AI Resume Enhancement — <span id="top-ai-track-name">Recommended Track</span>
+              </div>
+              <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+                <button class="ai-enhance-btn" style="font-size:0.8rem;padding:0.35rem 0.85rem" id="top-ai-btn">
+                  ✨ Generate Suggestions
+                </button>
+                <button class="tailor-btn" style="font-size:0.8rem;padding:0.35rem 0.85rem" id="top-tailor-btn">
+                  🪄 Tailor Full Resume
+                </button>
+              </div>
+            </div>
+            <p id="top-ai-hint" style="color:var(--muted);font-size:0.82rem;margin-top:0.4rem;margin-bottom:0.4rem">
+              AI will analyze missing keywords and generate tailored ATS resume bullets for your recommended track.
+            </p>
+            <div id="top-ai-result"></div>
+            <div id="top-tailor-result"></div>
+          </div>
+
           <!-- 4-Track Summary Cards (2x2 Grid) -->
           <div class="summary-grid" id="summary-grid" style="margin-bottom:0.75rem"></div>
 
@@ -315,15 +337,42 @@
 
         <!-- Tab View 3: 📊 Score Charts & Analytics -->
         <div id="hub-view-charts" class="hub-view-panel hidden">
-          <div class="chart-panel-header" style="margin-bottom:1rem">
-            <span class="chart-title">📊 Score Comparison</span>
-            <div class="toggle-group" id="chart-type-toggle">
-              <button class="toggle-btn active" data-chart="radar" onclick="switchChart('radar')">Radar</button>
-              <button class="toggle-btn" data-chart="bar" onclick="switchChart('bar')">Bar</button>
+          <div class="chart-ai-grid">
+            <div>
+              <div class="chart-panel-header" style="margin-bottom:1rem">
+                <span class="chart-title">📊 Score Comparison</span>
+                <div class="toggle-group" id="chart-type-toggle">
+                  <button class="toggle-btn active" data-chart="radar" onclick="switchChart('radar')">Radar</button>
+                  <button class="toggle-btn" data-chart="bar" onclick="switchChart('bar')">Bar</button>
+                </div>
+              </div>
+              <div class="chart-wrap">
+                <canvas id="scoreChart"></canvas>
+              </div>
             </div>
-          </div>
-          <div class="chart-wrap">
-            <canvas id="scoreChart"></canvas>
+
+            <div>
+              <div class="card ai-panel" id="chart-side-ai-panel">
+                <div class="ai-panel-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem">
+                  <div class="ai-panel-title" id="chart-side-ai-title" style="font-weight:700;color:var(--accent2);font-size:0.95rem">
+                    ✨ AI Resume Enhancement — Recommended Track
+                  </div>
+                  <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+                    <button class="ai-enhance-btn" style="font-size:0.8rem;padding:0.35rem 0.85rem" id="chart-side-ai-btn">
+                      ✨ Generate Suggestions
+                    </button>
+                    <button class="tailor-btn" style="font-size:0.8rem;padding:0.35rem 0.85rem" id="chart-side-tailor-btn">
+                      🪄 Tailor Full Resume
+                    </button>
+                  </div>
+                </div>
+                <p id="chart-side-ai-hint" style="color:var(--muted);font-size:0.82rem;margin-top:0.4rem;margin-bottom:0.4rem">
+                  AI will analyze missing keywords and generate tailored ATS resume bullets for your recommended track.
+                </p>
+                <div id="chart-side-ai-result"></div>
+                <div id="chart-side-tailor-result"></div>
+              </div>
+            </div>
           </div>
         </div>
 

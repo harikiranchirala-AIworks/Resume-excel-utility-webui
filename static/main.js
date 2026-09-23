@@ -281,6 +281,7 @@ function activateTab(tc) {
   activeTab = tc;
   document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.track === tc));
   renderTabContent(tc);
+  updateChartSideAiCard(tc);
 }
 
 function renderTabContent(tc) {
@@ -836,6 +837,10 @@ function renderBestTrackBanner(data) {
   document.getElementById("bt-runner-up").textContent = runnerUpT
     ? `Runner-up: ${TRACK_EMOJIS[runnerUpTc]} ${runnerUpT.label} (${runnerUpT.final_pts} pts)`
     : "";
+
+  // Update Top AI Enhancement Card & Chart-side AI Panel
+  updateTopAiEnhancementCard(best_track, t);
+  updateChartSideAiCard(best_track, t);
 
   // Reset AI result panel
   document.getElementById("bt-ai-result").classList.add("hidden");
@@ -1458,4 +1463,195 @@ function updateJdHighlights() {
 
 function escapeRegExp(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/* ═══════════════════════════ TOP & CHART-SIDE AI CARDS ══════════════ */
+
+function updateTopAiEnhancementCard(tc, trackObj) {
+  if (!trackObj && currentData) trackObj = currentData.tracks[tc];
+  if (!trackObj) return;
+
+  const trackLabel = trackObj.label || tc;
+  const hasResume = !!resumeTexts[tc];
+
+  const titleEl = document.getElementById("top-ai-title");
+  if (titleEl) titleEl.innerHTML = `✨ AI Resume Enhancement — <span style="color:var(--accent2)">${escHtml(trackLabel)}</span>`;
+
+  const btnEnhance = document.getElementById("top-ai-btn");
+  if (btnEnhance) {
+    btnEnhance.innerHTML = hasResume ? "✨ Enhance My Resume" : "✨ Generate Suggestions";
+    btnEnhance.onclick = () => runEnhancementInTarget(tc, "top");
+  }
+
+  const btnTailor = document.getElementById("top-tailor-btn");
+  if (btnTailor) {
+    btnTailor.onclick = () => runTailorResumeInTarget(tc, "top");
+  }
+
+  const hintEl = document.getElementById("top-ai-hint");
+  if (hintEl) {
+    hintEl.innerHTML = hasResume 
+      ? `<span style="color:var(--accent2)">✓ Candidate resume loaded for this track. Click to get personalised advice or generate a full tailored ATS resume.</span>`
+      : `No resume provided for this track — AI will generate general suggestions based on the JD. Add your resume above for personalised advice.`;
+  }
+}
+
+function updateChartSideAiCard(tc, trackObj) {
+  if (!trackObj && currentData) trackObj = currentData.tracks[tc];
+  if (!trackObj) return;
+
+  const trackLabel = trackObj.label || tc;
+  const hasResume = !!resumeTexts[tc];
+
+  const titleEl = document.getElementById("chart-side-ai-title");
+  if (titleEl) titleEl.innerHTML = `✨ AI Resume Enhancement — <span style="color:var(--accent2)">${escHtml(trackLabel)}</span>`;
+
+  const btnEnhance = document.getElementById("chart-side-ai-btn");
+  if (btnEnhance) {
+    btnEnhance.innerHTML = hasResume ? "✨ Enhance My Resume" : "✨ Generate Suggestions";
+    btnEnhance.onclick = () => runEnhancementInTarget(tc, "chart-side");
+  }
+
+  const btnTailor = document.getElementById("chart-side-tailor-btn");
+  if (btnTailor) {
+    btnTailor.onclick = () => runTailorResumeInTarget(tc, "chart-side");
+  }
+
+  const hintEl = document.getElementById("chart-side-ai-hint");
+  if (hintEl) {
+    hintEl.innerHTML = hasResume 
+      ? `<span style="color:var(--accent2)">✓ Candidate resume loaded for this track.</span>`
+      : `No resume provided for this track — AI will generate general suggestions based on the JD.`;
+  }
+}
+
+async function runEnhancementInTarget(tc, targetPrefix) {
+  const jdText = getJdText();
+  if (!jdText) { alert("Please analyse a JD first."); return; }
+
+  const btn = document.getElementById(`${targetPrefix}-ai-btn`);
+  const resultEl = document.getElementById(`${targetPrefix}-ai-result`);
+  if (!btn || !resultEl) return;
+
+  btn.disabled = true;
+  btn.innerHTML = `<span class="ai-spinner"></span> Analysing…`;
+  resultEl.innerHTML = "";
+
+  try {
+    const resp = await fetch("/enhance", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jd_text: jdText, resume_text: resumeTexts[tc] || "", track: tc }),
+    });
+    const data = await resp.json();
+
+    if (data.error === "NO_API_KEY" || data.error === "INVALID_API_KEY") {
+      document.getElementById("api-key-banner")?.classList.remove("hidden");
+      resultEl.innerHTML = `<p class="warn-msg">⚠ ${data.error === "INVALID_API_KEY" ? "API key is invalid." : "Gemini API key not configured."}</p>`;
+      return;
+    }
+    if (data.error) {
+      resultEl.innerHTML = `<p class="warn-msg">⚠ Error: ${escHtml(data.error)}</p>`;
+      return;
+    }
+
+    resultEl.innerHTML = renderAiResult(data);
+  } catch (e) {
+    resultEl.innerHTML = `<p class="warn-msg">✗ Request failed: ${escHtml(e.message)}</p>`;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = "✨ Regenerate";
+  }
+}
+
+async function runTailorResumeInTarget(tc, targetPrefix) {
+  const jdText = getJdText();
+  if (!jdText) { alert("Please analyse a JD first."); return; }
+
+  const btn = document.getElementById(`${targetPrefix}-tailor-btn`);
+  const resultEl = document.getElementById(`${targetPrefix}-tailor-result`);
+  if (!btn || !resultEl) return;
+
+  btn.disabled = true;
+  btn.innerHTML = `<span class="ai-spinner"></span> Tailoring Full Resume…`;
+  resultEl.innerHTML = "";
+
+  try {
+    const resp = await fetch("/tailor_resume", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jd_text: jdText, resume_text: resumeTexts[tc] || "", track: tc }),
+    });
+    const data = await resp.json();
+
+    if (data.error === "NO_API_KEY" || data.error === "INVALID_API_KEY") {
+      document.getElementById("api-key-banner")?.classList.remove("hidden");
+      resultEl.innerHTML = `<p class="warn-msg">⚠ ${data.error === "INVALID_API_KEY" ? "API key is invalid." : "Gemini API key not configured."}</p>`;
+      return;
+    }
+    if (data.error === "RATE_LIMIT_EXCEEDED") {
+      resultEl.innerHTML = `<div style="background:rgba(255,169,77,0.1);border:1px solid rgba(255,169,77,0.35);border-radius:8px;padding:0.75rem 0.9rem;margin-top:0.75rem;font-size:0.83rem"><div style="font-weight:600;color:var(--warn);margin-bottom:0.25rem">⏱ Gemini Rate Limit Reached</div><div>Please wait ~30 seconds and try again.</div></div>`;
+      return;
+    }
+    if (data.error) {
+      resultEl.innerHTML = `<p class="warn-msg">⚠ Error: ${escHtml(data.error)}</p>`;
+      return;
+    }
+
+    window._tailoredResumes[tc] = data;
+    renderTailoredResumeInContainer(tc, data, resultEl);
+
+  } catch (e) {
+    resultEl.innerHTML = `<p class="warn-msg">✗ Request failed: ${escHtml(e.message)}</p>`;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = "🪄 Regenerate Full Resume";
+  }
+}
+
+function renderTailoredResumeInContainer(tc, data, containerEl) {
+  const md = data.full_markdown || "";
+  const origResume = resumeTexts[tc] || "(No candidate resume uploaded for this track)";
+
+  let html = `
+    <div class="tailor-res-card" style="margin-top:0.75rem">
+      <div class="tailor-header">
+        <div class="tailor-title-badge">🎯 AI-Tailored Executive Resume (${escHtml(data.job_title || tc)})</div>
+        <div class="tailor-actions">
+          <button class="tailor-action-btn" onclick="copyTailoredMd('${tc}')">📋 Copy Markdown</button>
+          <button class="tailor-action-btn" onclick="downloadDocxFile('${tc}')">📥 Download Word (.docx)</button>
+          <button class="tailor-action-btn" onclick="downloadTxtFile('${tc}')">📄 Download Text (.txt)</button>
+          <button class="tailor-action-btn" onclick="window.print()">🖨️ Print / Save PDF</button>
+        </div>
+      </div>
+
+      <div class="tailor-view-bar">
+        <button class="tailor-view-btn active" id="tv-btn-md-${tc}" onclick="switchTailorView('${tc}', 'md')">💻 Formatted Resume</button>
+        <button class="tailor-view-btn" id="tv-btn-split-${tc}" onclick="switchTailorView('${tc}', 'split')">⚔️ Side-by-Side View</button>
+        <button class="tailor-view-btn" id="tv-btn-edit-${tc}" onclick="switchTailorView('${tc}', 'edit')">✏️ Edit & Customise</button>
+      </div>
+
+      <!-- View 1: Formatted Resume Box -->
+      <div id="tv-box-md-${tc}" class="tailor-md-box">${escHtml(md)}</div>
+
+      <!-- View 2: Side-by-Side Comparison -->
+      <div id="tv-box-split-${tc}" class="tailor-split-grid hidden">
+        <div class="tailor-split-col">
+          <div class="tailor-col-title">📄 Original Candidate Resume</div>
+          <div class="tailor-md-box" style="max-height:340px">${escHtml(origResume)}</div>
+        </div>
+        <div class="tailor-split-col">
+          <div class="tailor-col-title">✨ AI-Tailored Resume (${escHtml(data.job_title || tc)})</div>
+          <div class="tailor-md-box" style="max-height:340px">${escHtml(md)}</div>
+        </div>
+      </div>
+
+      <!-- View 3: Live Editable Textarea -->
+      <div id="tv-box-edit-${tc}" class="hidden">
+        <p style="font-size:0.82rem;color:var(--muted);margin-bottom:0.5rem">💡 Tip: Any edits you make here will be saved live and included when you click "Download Word (.docx)" or "Copy Markdown".</p>
+        <textarea id="tv-textarea-${tc}" class="tailor-edit-textarea" oninput="onTailorEdit('${tc}')">${escHtml(md)}</textarea>
+      </div>
+    </div>`;
+
+  containerEl.innerHTML = html;
 }
