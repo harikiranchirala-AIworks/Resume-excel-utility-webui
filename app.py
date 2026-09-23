@@ -190,6 +190,32 @@ def download_docx():
     )
 
 
+# ── SESSION HISTORY ENDPOINTS ────────────────────────────────────────────────
+@app.route("/api/history", methods=["GET"])
+def get_history():
+    from history_manager import load_history_sessions
+    sessions = load_history_sessions()
+    return jsonify({"sessions": sessions})
+
+
+@app.route("/api/history/save", methods=["POST"])
+def save_history():
+    data = request.get_json(force=True)
+    if not data or not data.get("jd_text"):
+        return jsonify({"error": "Job description is required to save session."}), 400
+
+    from history_manager import save_history_session
+    saved = save_history_session(data)
+    return jsonify({"success": True, "session": saved})
+
+
+@app.route("/api/history/<session_id>", methods=["DELETE"])
+def delete_history(session_id):
+    from history_manager import delete_history_session
+    deleted = delete_history_session(session_id)
+    return jsonify({"success": deleted})
+
+
 # ── AI PICK BEST TRACK ────────────────────────────────────────────────────────
 @app.route("/pick_track", methods=["POST"])
 def pick_track():

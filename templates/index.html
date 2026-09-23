@@ -11,9 +11,18 @@
 
   <header>
     <div class="header-inner">
-      <h1>&#127919; JD-to-Resume Matching Utility</h1>
-      <p class="subtitle">Automated Job Description analysis across 4 professional tracks</p>
-      <p class="tracks-line">AI Transformation &nbsp;&bull;&nbsp; Technical Program Manager &nbsp;&bull;&nbsp; IT Delivery &nbsp;&bull;&nbsp; Product Manager</p>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem">
+        <div>
+          <h1>&#127919; JD-to-Resume Matching Utility</h1>
+          <p class="subtitle">Automated Job Description analysis across 4 professional tracks</p>
+        </div>
+        <div>
+          <button class="tailor-action-btn" style="background:var(--surface2);border-color:var(--accent);color:var(--accent2);font-weight:700;padding:0.5rem 1rem" onclick="openHistoryModal()">
+            💾 Saved Applications (<span id="history-count">0</span>)
+          </button>
+        </div>
+      </div>
+      <p class="tracks-line" style="margin-top:0.5rem">AI Transformation &nbsp;&bull;&nbsp; Technical Program Manager &nbsp;&bull;&nbsp; IT Delivery &nbsp;&bull;&nbsp; Product Manager</p>
     </div>
   </header>
 
@@ -145,7 +154,12 @@
     <section id="results" class="hidden">
       <!-- ── JOB INTELLIGENCE & SIGNALS ── -->
       <div class="card job-signals-card" id="job-signals-card">
-        <div class="signals-header">💼 Job Intelligence & Signals</div>
+        <div class="signals-header" style="display:flex;justify-content:space-between;align-items:center">
+          <span>💼 Job Intelligence & Signals</span>
+          <button class="tailor-btn" style="font-size:0.8rem;padding:0.35rem 0.85rem" id="save-session-btn" onclick="saveCurrentSession()">
+            💾 Save Session
+          </button>
+        </div>
         <div class="signals-grid">
           <div class="signal-item">
             <span class="signal-icon">💰</span>
@@ -271,6 +285,19 @@
   <footer>
     <p>Resume Excel Utility &middot; Powered by Python + Flask + Gemini</p>
   </footer>
+
+  <!-- ── HISTORY MODAL ── -->
+  <div id="history-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">💾 Saved Applications & History</div>
+        <button class="modal-close-btn" onclick="closeHistoryModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="history-modal-body">
+        <p style="color:var(--muted);text-align:center">Loading saved sessions...</p>
+      </div>
+    </div>
+  </div>
 
   <script src="/static/main.js"></script>
 </body>

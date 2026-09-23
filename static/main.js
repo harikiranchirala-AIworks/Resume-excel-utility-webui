@@ -1083,3 +1083,232 @@ function copyTailoredMd(tc) {
     alert("Tailored Resume copied to clipboard!");
   });
 }
+
+/* ═══════════════════════════ SESSION HISTORY ═════════════════════════ */
+
+document.addEventListener("DOMContentLoaded", () => {
+  loadHistoryCount();
+});
+
+async function loadHistoryCount() {
+  try {
+    const resp = await fetch("/api/history");
+    const data = await resp.json();
+    const count = (data.sessions || []).length;
+    const countEl = document.getElementById("history-count");
+    if (countEl) countEl.textContent = count;
+  } catch (e) {
+    console.error("Failed to load history count:", e);
+  }
+}
+
+async function openHistoryModal() {
+  document.getElementById("history-modal")?.classList.remove("hidden");
+  await loadHistory();
+}
+
+function closeHistoryModal() {
+  document.getElementById("history-modal")?.classList.add("hidden");
+}
+
+async function loadHistory() {
+  const bodyEl = document.getElementById("history-modal-body");
+  if (!bodyEl) return;
+  bodyEl.innerHTML = `<p style="color:var(--muted);text-align:center">Loading saved sessions...</p>`;
+
+  try {
+    const resp = await fetch("/api/history");
+    const data = await resp.json();
+    const sessions = data.sessions || [];
+    
+    // Update badge count
+    const countEl = document.getElementById("history-count");
+    if (countEl) countEl.textContent = sessions.length;
+
+    if (sessions.length === 0) {
+      bodyEl.innerHTML = `
+        <div style="text-align:center;padding:2.5rem 1rem;color:var(--muted)">
+          <div style="font-size:2.5rem;margin-bottom:0.5rem">📂</div>
+          <div style="font-weight:600;font-size:1rem;color:var(--text);margin-bottom:0.25rem">No Saved Sessions Yet</div>
+          <div style="font-size:0.85rem">Analyse a Job Description and click "💾 Save Session" in the Job Intelligence panel.</div>
+        </div>`;
+      return;
+    }
+
+    let html = "";
+    sessions.forEach(s => {
+      const bestTrack = s.best_track || "AI";
+      const bestScore = s.best_score || 0;
+      const title = s.title || "Job Application";
+      const company = s.company || "";
+      const dateStr = s.date || "";
+      const id = s.id;
+
+      let scoreBadges = "";
+      if (s.scores) {
+        scoreBadges = Object.entries(s.scores).map(([tc, pct]) => {
+          const isBest = tc === bestTrack;
+          const bg = isBest ? 'rgba(0,212,170,0.18)' : 'var(--surface)';
+          const color = isBest ? 'var(--accent2)' : 'var(--muted)';
+          const border = isBest ? 'var(--accent2)' : 'var(--border)';
+          return `<span style="display:inline-block;padding:0.2rem 0.5rem;border-radius:4px;font-size:0.75rem;font-weight:600;background:${bg};color:${color};border:1px solid ${border}">${tc}: ${pct}%</span>`;
+        }).join(" ");
+      }
+
+      html += `
+        <div class="history-card">
+          <div style="flex:1;min-width:240px">
+            <div class="history-title">${escHtml(title)} ${company ? `<span style="font-size:0.85rem;color:var(--accent);font-weight:500">@ ${escHtml(company)}</span>` : ""}</div>
+            <div class="history-meta" style="margin-top:0.4rem;margin-bottom:0.5rem">
+              <span>🕒 ${escHtml(dateStr)}</span>
+              <span style="color:var(--accent2);font-weight:600">🎯 Best: ${escHtml(bestTrack)} (${bestScore}%)</span>
+            </div>
+            <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
+              ${scoreBadges}
+            </div>
+          </div>
+          <div class="history-actions">
+            <button class="tailor-action-btn" style="padding:0.4rem 0.8rem;font-size:0.8rem;background:rgba(108,99,255,0.15);color:var(--accent);border-color:rgba(108,99,255,0.3)" onclick="reloadSession('${id}')">
+              🔄 Load Session
+            </button>
+            <button class="tailor-action-btn" style="padding:0.4rem 0.8rem;font-size:0.8rem;background:rgba(255,107,107,0.12);color:#ff6b6b;border-color:rgba(255,107,107,0.3)" onclick="deleteSession('${id}')">
+              🗑️ Delete
+            </button>
+          </div>
+        </div>`;
+    });
+
+    bodyEl.innerHTML = html;
+  } catch (e) {
+    bodyEl.innerHTML = `<p class="warn-msg">✗ Error loading history: ${escHtml(e.message)}</p>`;
+  }
+}
+
+async function saveCurrentSession() {
+  const jdText = getJdText();
+  if (!jdText) {
+    alert("Please paste or fetch a Job Description first before saving.");
+    return;
+  }
+  if (!currentData) {
+    alert("Please analyse the JD first before saving.");
+    return;
+  }
+
+  const btn = document.getElementById("save-session-btn");
+  const origText = btn ? btn.innerHTML : "💾 Save Session";
+  if (btn) { btn.disabled = true; btn.textContent = "Saving…"; }
+
+  // Compute best track
+  let bestTrack = "AI";
+  let maxScore = -1;
+  if (currentData.tracks) {
+    Object.entries(currentData.tracks).forEach(([tc, tData]) => {
+      if (tData.pct > maxScore) {
+        maxScore = tData.pct;
+        bestTrack = tc;
+      }
+    });
+  }
+
+  // Derive scores summary map
+  const scoresMap = {};
+  if (currentData.tracks) {
+    Object.entries(currentData.tracks).forEach(([tc, tData]) => {
+      scoresMap[tc] = tData.pct;
+    });
+  }
+
+  // Job title & company from signals or first line of JD
+  const title = currentData.signals?.title || (jdText.split('\n')[0] || "Saved Application").substring(0, 60).trim();
+  const company = currentData.signals?.company || "";
+
+  const payload = {
+    title: title,
+    company: company,
+    jd_text: jdText,
+    best_track: bestTrack,
+    best_score: maxScore > -1 ? maxScore : 0,
+    scores: scoresMap,
+    signals: currentData.signals || {},
+    currentData: currentData,
+    resumeTexts: resumeTexts
+  };
+
+  try {
+    const resp = await fetch("/api/history/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await resp.json();
+    if (data.error) {
+      alert("Failed to save: " + data.error);
+    } else {
+      if (btn) {
+        btn.innerHTML = "✅ Saved!";
+        setTimeout(() => { btn.innerHTML = origText; btn.disabled = false; }, 2000);
+      }
+      loadHistoryCount();
+    }
+  } catch (e) {
+    alert("Network error: " + e.message);
+    if (btn) { btn.innerHTML = origText; btn.disabled = false; }
+  }
+}
+
+async function reloadSession(sessionId) {
+  try {
+    const resp = await fetch("/api/history");
+    const data = await resp.json();
+    const session = (data.sessions || []).find(s => s.id === sessionId);
+    if (!session) {
+      alert("Session not found.");
+      return;
+    }
+
+    // Populate JD input
+    setJdMode("paste");
+    document.getElementById("jd-input").value = session.jd_text || "";
+
+    // Populate resume text if saved
+    if (session.resumeTexts) {
+      resumeTexts = { ...session.resumeTexts };
+      TRACK_ORDER.forEach(tc => {
+        const ta = document.querySelector(`.resume-textarea[data-track="${tc}"]`);
+        if (ta) ta.value = resumeTexts[tc] || "";
+      });
+    }
+
+    // If currentData is stored, render results directly; otherwise score JD
+    if (session.currentData) {
+      currentData = session.currentData;
+      renderResults(currentData);
+      checkApiKey();
+    } else {
+      await submitJD();
+    }
+
+    closeHistoryModal();
+    const resultsEl = document.getElementById("results");
+    if (resultsEl) resultsEl.scrollIntoView({ behavior: "smooth" });
+  } catch (e) {
+    alert("Error reloading session: " + e.message);
+  }
+}
+
+async function deleteSession(sessionId) {
+  if (!confirm("Are you sure you want to delete this saved session?")) return;
+  try {
+    const resp = await fetch(`/api/history/${sessionId}`, { method: "DELETE" });
+    const data = await resp.json();
+    if (data.success) {
+      await loadHistory();
+      loadHistoryCount();
+    } else {
+      alert("Failed to delete session.");
+    }
+  } catch (e) {
+    alert("Error deleting session: " + e.message);
+  }
+}
