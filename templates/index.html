@@ -150,6 +150,53 @@
           </div><!-- /resume-body -->
         </section>
 
+        <!-- Job Intelligence & Signals Card (Moved to Left Column for perfect vertical height balance) -->
+        <div class="card job-signals-card mt-card" id="job-signals-card">
+          <div class="signals-header" style="display:flex;justify-content:space-between;align-items:center">
+            <span>💼 Job Intelligence & Signals</span>
+            <button class="tailor-btn" style="font-size:0.78rem;padding:0.3rem 0.75rem" id="save-session-btn" onclick="saveCurrentSession()">
+              💾 Save Session
+            </button>
+          </div>
+          <div class="signals-grid">
+            <div class="signal-item">
+              <span class="signal-icon">💰</span>
+              <div class="signal-info">
+                <span class="signal-label">Salary Range</span>
+                <span class="signal-val" id="sig-salary">—</span>
+              </div>
+            </div>
+            <div class="signal-item">
+              <span class="signal-icon">⏳</span>
+              <div class="signal-info">
+                <span class="signal-label">Experience Required</span>
+                <span class="signal-val" id="sig-exp">—</span>
+              </div>
+            </div>
+            <div class="signal-item">
+              <span class="signal-icon">🏢</span>
+              <div class="signal-info">
+                <span class="signal-label">Work Mode</span>
+                <span class="signal-val" id="sig-work">—</span>
+              </div>
+            </div>
+            <div class="signal-item">
+              <span class="signal-icon">📈</span>
+              <div class="signal-info">
+                <span class="signal-label">Seniority Level</span>
+                <span class="signal-val" id="sig-seniority">—</span>
+              </div>
+            </div>
+            <div class="signal-item">
+              <span class="signal-icon">🌐</span>
+              <div class="signal-info">
+                <span class="signal-label">Industry Signals</span>
+                <span class="signal-val" id="sig-industry">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div><!-- /left-col -->
 
       <!-- RIGHT COLUMN: Instant Match & Intelligence Panel -->
@@ -211,54 +258,7 @@
           </div>
 
           <!-- 4-Track Summary Cards (2x2 Grid) -->
-          <div class="summary-grid" id="summary-grid" style="margin-bottom:0.75rem"></div>
-
-          <!-- Job Intelligence & Signals Card -->
-          <div class="card job-signals-card" id="job-signals-card">
-            <div class="signals-header" style="display:flex;justify-content:space-between;align-items:center">
-              <span>💼 Job Intelligence & Signals</span>
-              <button class="tailor-btn" style="font-size:0.78rem;padding:0.3rem 0.75rem" id="save-session-btn" onclick="saveCurrentSession()">
-                💾 Save Session
-              </button>
-            </div>
-            <div class="signals-grid">
-              <div class="signal-item">
-                <span class="signal-icon">💰</span>
-                <div class="signal-info">
-                  <span class="signal-label">Salary Range</span>
-                  <span class="signal-val" id="sig-salary">—</span>
-                </div>
-              </div>
-              <div class="signal-item">
-                <span class="signal-icon">⏳</span>
-                <div class="signal-info">
-                  <span class="signal-label">Experience Required</span>
-                  <span class="signal-val" id="sig-exp">—</span>
-                </div>
-              </div>
-              <div class="signal-item">
-                <span class="signal-icon">🏢</span>
-                <div class="signal-info">
-                  <span class="signal-label">Work Mode</span>
-                  <span class="signal-val" id="sig-work">—</span>
-                </div>
-              </div>
-              <div class="signal-item">
-                <span class="signal-icon">📈</span>
-                <div class="signal-info">
-                  <span class="signal-label">Seniority Level</span>
-                  <span class="signal-val" id="sig-seniority">—</span>
-                </div>
-              </div>
-              <div class="signal-item">
-                <span class="signal-icon">🌐</span>
-                <div class="signal-info">
-                  <span class="signal-label">Industry Signals</span>
-                  <span class="signal-val" id="sig-industry">—</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          <div class="summary-grid" id="summary-grid"></div>
 
         </div><!-- /active-intelligence-panel -->
 
