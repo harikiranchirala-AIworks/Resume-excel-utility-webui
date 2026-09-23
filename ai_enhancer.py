@@ -175,31 +175,46 @@ def tailor_full_resume(jd_text: str, resume_text: str, track_code: str, scored_k
     matched = [k["keyword"] for k in scored_kws if k.get("score", 0) > 0]
     missed = [k["keyword"] for k in scored_kws if k.get("score", 0) == 0]
 
-    resume_input = resume_text.strip() if resume_text else "(No candidate resume provided - generate an exemplary executive resume structure for this role)"
+    has_resume = bool(resume_text.strip())
 
-    prompt = f"""You are an elite executive resume writer and ATS optimization specialist.
+    if has_resume:
+        resume_input = resume_text.strip()[:4000]
+        resume_guidance = """STRICT FACT-PRESERVATION MANDATE:
+- The candidate HAS provided their actual resume text below.
+- YOU MUST PRESERVE the candidate's ACTUAL company names, employer history, job titles, employment dates, university names, and degrees EXACTLY as stated in candidate's original resume.
+- ABSOLUTELY NEVER replace the candidate's real company names with the target hiring company name from the JD (e.g. do NOT invent that the candidate worked at the hiring company in the JD unless explicitly stated in candidate's resume).
+- ABSOLUTELY NEVER hallucinate or invent fake company names (e.g. Synchrony, UnitedHealth, Acetech), fake universities, or fake employment dates.
+- Rephrase and enhance bullet points and summary to highlight relevant JD keywords and achievements while staying 100% faithful to candidate's real work history."""
+    else:
+        resume_input = "(No candidate resume provided)"
+        resume_guidance = """NO RESUME PROVIDED MANDATE:
+- The candidate did NOT provide their original resume text.
+- Use explicit brackets/placeholders for all personal metadata: e.g., '[Company Name]', '[Employment Dates]', '[University / Degree]', '[City, State / Remote]'.
+- ABSOLUTELY NEVER invent real company names (such as the target hiring company in the JD or third-party corporations) or fake university names."""
+
+    prompt = f"""You are an elite executive resume writer, ATS optimization specialist, and strict factual editor.
 
 ## Target Role Track
 {track_label}
 
-## Job Description
-{jd_text[:3000]}
+## Job Description (Target Hiring Role)
+{jd_text[:3500]}
 
 ## Candidate Original Resume / Profile
-{resume_input[:3000]}
+{resume_input}
 
 ## Keyword Signals
-Matched Keywords: {", ".join(matched[:10]) if matched else "None"}
-Top Missing Gaps: {", ".join(missed[:10]) if missed else "None"}
+Matched Keywords: {", ".join(matched[:12]) if matched else "None"}
+Top Missing Gaps: {", ".join(missed[:12]) if missed else "None"}
 
-## Instructions
-Generate a complete, highly compelling, ATS-optimized executive resume tailored specifically for this Job Description.
+## CRITICAL INSTRUCTIONS & RULES:
+{resume_guidance}
 
-Ensure:
+Additional Instructions:
 1. Professional Summary: 3-4 sentence impactful executive summary matching the target role title and JD priorities.
 2. Core Competencies: Categorized skills incorporating key JD keywords.
-3. Experience Bullets: Strong action-oriented bullet points with quantified achievements (% improvement, team size, budget, scope).
-4. Full Markdown Resume: Complete formatted resume ready to submit.
+3. Experience Bullets: Strong action-oriented bullet points tailored to target role with achievements.
+4. Full Markdown Resume: Complete formatted resume ready for review and editing with headers ## PROFESSIONAL SUMMARY, ## CORE COMPETENCIES, ## PROFESSIONAL EXPERIENCE, ## EDUCATION & CERTIFICATIONS.
 
 Respond ONLY with valid JSON (no markdown fences):
 {{
@@ -209,7 +224,7 @@ Respond ONLY with valid JSON (no markdown fences):
     {{"category": "<Category Name>", "skills": ["<Skill 1>", "<Skill 2>", "<Skill 3>"]}}
   ],
   "experience_highlights": [
-    {{"role": "<Role Title>", "company": "<Company / Client>", "bullets": ["<Bullet 1>", "<Bullet 2>", "<Bullet 3>"]}}
+    {{"role": "<Role Title>", "company": "<Actual Company from Candidate Resume or [Company Name]>", "bullets": ["<Bullet 1>", "<Bullet 2>", "<Bullet 3>"]}}
   ],
   "full_markdown": "<Complete Full Markdown Resume with headers ## PROFESSIONAL SUMMARY, ## CORE COMPETENCIES, ## PROFESSIONAL EXPERIENCE, ## EDUCATION & CERTIFICATIONS>"
 }}"""
