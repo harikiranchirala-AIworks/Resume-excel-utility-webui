@@ -11,6 +11,18 @@ let resumeTexts = { AI: "", TPM: "", ITDM: "", PM: "" };
 let scoreChartInstance = null;
 let activeChartType = "radar";  // "radar" | "bar"
 
+function getEffectiveResumeText(track) {
+  if (track && resumeTexts[track] && resumeTexts[track].trim()) {
+    return resumeTexts[track].trim();
+  }
+  for (const tc of TRACK_ORDER) {
+    if (resumeTexts[tc] && resumeTexts[tc].trim()) {
+      return resumeTexts[tc].trim();
+    }
+  }
+  return "";
+}
+
 /* ═══════════════════════════ JD SECTION ═══════════════════════════ */
 
 function setJdMode(mode) {
@@ -110,6 +122,15 @@ async function uploadResume(input, track) {
     const ta = document.querySelector(`.resume-textarea[data-track="${track}"]`);
     if (ta) ta.value = data.text;
     statusEl.textContent = `✓ ${file.name} loaded (${data.text.length} chars)`;
+
+    // Automatically refresh AI cards if scoring data is loaded
+    if (currentData) {
+      if (currentData.best_track) updateTopAiEnhancementCard(currentData.best_track);
+      if (activeTab) {
+        renderTabContent(activeTab);
+        updateChartSideAiCard(activeTab);
+      }
+    }
   } catch (e) {
     statusEl.textContent = "✗ Upload error: " + e.message;
   }
@@ -120,6 +141,14 @@ function syncResumeTexts() {
     const ta = document.querySelector(`.resume-textarea[data-track="${tc}"]`);
     if (ta) resumeTexts[tc] = ta.value.trim();
   });
+
+  if (currentData) {
+    if (currentData.best_track) updateTopAiEnhancementCard(currentData.best_track);
+    if (activeTab) {
+      renderTabContent(activeTab);
+      updateChartSideAiCard(activeTab);
+    }
+  }
 }
 
 /* ═══════════════════════════ SCORING ═══════════════════════════════ */
@@ -424,7 +453,7 @@ async function runEnhancement(tc) {
     const resp = await fetch("/enhance", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jd_text: jdText, resume_text: resumeTexts[tc] || "", track: tc }),
+      body: JSON.stringify({ jd_text: jdText, resume_text: getEffectiveResumeText(tc), track: tc }),
     });
     const data = await resp.json();
 
@@ -978,7 +1007,7 @@ async function runTailorResume(tc) {
     const resp = await fetch("/tailor_resume", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jd_text: jdText, resume_text: resumeTexts[tc] || "", track: tc }),
+      body: JSON.stringify({ jd_text: jdText, resume_text: getEffectiveResumeText(tc), track: tc }),
     });
     const data = await resp.json();
 
@@ -1472,7 +1501,8 @@ function updateTopAiEnhancementCard(tc, trackObj) {
   if (!trackObj) return;
 
   const trackLabel = trackObj.label || tc;
-  const hasResume = !!resumeTexts[tc];
+  const effectiveResume = getEffectiveResumeText(tc);
+  const hasResume = !!effectiveResume;
 
   const titleEl = document.getElementById("top-ai-title");
   if (titleEl) titleEl.innerHTML = `✨ AI Resume Enhancement — <span style="color:var(--accent2)">${escHtml(trackLabel)}</span>`;
@@ -1491,8 +1521,8 @@ function updateTopAiEnhancementCard(tc, trackObj) {
   const hintEl = document.getElementById("top-ai-hint");
   if (hintEl) {
     hintEl.innerHTML = hasResume 
-      ? `<span style="color:var(--accent2)">✓ Candidate resume loaded for this track. Click to get personalised advice or generate a full tailored ATS resume.</span>`
-      : `No resume provided for this track — AI will generate general suggestions based on the JD. Add your resume above for personalised advice.`;
+      ? `<span style="color:var(--accent2)">✓ Candidate resume loaded (${effectiveResume.length} chars). Click to get personalised advice or generate a full tailored ATS resume.</span>`
+      : `No resume provided — AI will generate general suggestions based on the JD. Add your resume above for personalised advice.`;
   }
 }
 
@@ -1501,7 +1531,8 @@ function updateChartSideAiCard(tc, trackObj) {
   if (!trackObj) return;
 
   const trackLabel = trackObj.label || tc;
-  const hasResume = !!resumeTexts[tc];
+  const effectiveResume = getEffectiveResumeText(tc);
+  const hasResume = !!effectiveResume;
 
   const titleEl = document.getElementById("chart-side-ai-title");
   if (titleEl) titleEl.innerHTML = `✨ AI Resume Enhancement — <span style="color:var(--accent2)">${escHtml(trackLabel)}</span>`;
@@ -1520,7 +1551,7 @@ function updateChartSideAiCard(tc, trackObj) {
   const hintEl = document.getElementById("chart-side-ai-hint");
   if (hintEl) {
     hintEl.innerHTML = hasResume 
-      ? `<span style="color:var(--accent2)">✓ Candidate resume loaded for this track.</span>`
+      ? `<span style="color:var(--accent2)">✓ Candidate resume loaded (${effectiveResume.length} chars).</span>`
       : `No resume provided for this track — AI will generate general suggestions based on the JD.`;
   }
 }
@@ -1541,7 +1572,7 @@ async function runEnhancementInTarget(tc, targetPrefix) {
     const resp = await fetch("/enhance", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jd_text: jdText, resume_text: resumeTexts[tc] || "", track: tc }),
+      body: JSON.stringify({ jd_text: jdText, resume_text: getEffectiveResumeText(tc), track: tc }),
     });
     const data = await resp.json();
 
@@ -1580,7 +1611,7 @@ async function runTailorResumeInTarget(tc, targetPrefix) {
     const resp = await fetch("/tailor_resume", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jd_text: jdText, resume_text: resumeTexts[tc] || "", track: tc }),
+      body: JSON.stringify({ jd_text: jdText, resume_text: getEffectiveResumeText(tc), track: tc }),
     });
     const data = await resp.json();
 
