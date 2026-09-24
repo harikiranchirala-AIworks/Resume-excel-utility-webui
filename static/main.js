@@ -139,7 +139,9 @@ async function uploadResume(input, track) {
 function syncResumeTexts() {
   TRACK_ORDER.forEach(tc => {
     const ta = document.querySelector(`.resume-textarea[data-track="${tc}"]`);
-    if (ta) resumeTexts[tc] = ta.value.trim();
+    if (ta && ta.value.trim()) {
+      resumeTexts[tc] = ta.value.trim();
+    }
   });
 
   if (currentData) {
@@ -457,13 +459,8 @@ async function runEnhancement(tc) {
     });
     const data = await resp.json();
 
-    if (data.error === "NO_API_KEY" || data.error === "INVALID_API_KEY") {
-      document.getElementById("api-key-banner").classList.remove("hidden");
-      resultEl.innerHTML = `<p class="warn-msg">⚠ ${data.error === "INVALID_API_KEY" ? "API key is invalid. Please check your .env file." : "Gemini API key not configured. See the banner below."}</p>`;
-      return;
-    }
     if (data.error) {
-      resultEl.innerHTML = `<p class="warn-msg">⚠ Error: ${escHtml(data.error)}</p>`;
+      resultEl.innerHTML = formatAiError(data.error, data.summary);
       return;
     }
 
@@ -474,6 +471,30 @@ async function runEnhancement(tc) {
     btn.disabled = false;
     btn.innerHTML = "✨ Regenerate";
   }
+}
+
+function formatAiError(err, summaryMsg) {
+  if (!err) return "";
+  const errorStr = String(err);
+  if (errorStr === "NO_API_KEY" || errorStr === "INVALID_API_KEY") {
+    document.getElementById("api-key-banner")?.classList.remove("hidden");
+    return `<p class="warn-msg">⚠ ${errorStr === "INVALID_API_KEY" ? "API key is invalid. Please check your .env file." : "Gemini API key not configured. See the banner below."}</p>`;
+  }
+  if (errorStr === "RATE_LIMIT_EXCEEDED" || errorStr.includes("429") || errorStr.includes("RESOURCE_EXHAUSTED") || errorStr.includes("Quota")) {
+    return `
+      <div style="background:rgba(255,169,77,0.1);border:1px solid rgba(255,169,77,0.35);border-radius:8px;padding:0.75rem 0.9rem;margin-top:0.5rem;font-size:0.83rem">
+        <div style="font-weight:600;color:var(--warn);margin-bottom:0.25rem">⏱ Gemini Rate Limit Reached (Free Tier)</div>
+        <div style="color:var(--text);line-height:1.4">${escHtml(summaryMsg || "Google AI free tier limit reached (15-20 req/min). Please wait ~30 seconds and click the button again.")}</div>
+      </div>`;
+  }
+  if (errorStr === "SERVICE_UNAVAILABLE" || errorStr.includes("503") || errorStr.includes("UNAVAILABLE")) {
+    return `
+      <div style="background:rgba(255,169,77,0.1);border:1px solid rgba(255,169,77,0.35);border-radius:8px;padding:0.75rem 0.9rem;margin-top:0.5rem;font-size:0.83rem">
+        <div style="font-weight:600;color:var(--warn);margin-bottom:0.25rem">⚡ Google AI Service Busy</div>
+        <div style="color:var(--text);line-height:1.4">${escHtml(summaryMsg || "Google AI service is currently busy or experiencing a temporary network hiccup. Please wait a few seconds and try again.")}</div>
+      </div>`;
+  }
+  return `<p class="warn-msg" style="font-size:0.85rem">⚠ Error: ${escHtml(errorStr)}</p>`;
 }
 
 function renderAiResult(data) {
@@ -1576,13 +1597,8 @@ async function runEnhancementInTarget(tc, targetPrefix) {
     });
     const data = await resp.json();
 
-    if (data.error === "NO_API_KEY" || data.error === "INVALID_API_KEY") {
-      document.getElementById("api-key-banner")?.classList.remove("hidden");
-      resultEl.innerHTML = `<p class="warn-msg">⚠ ${data.error === "INVALID_API_KEY" ? "API key is invalid." : "Gemini API key not configured."}</p>`;
-      return;
-    }
     if (data.error) {
-      resultEl.innerHTML = `<p class="warn-msg">⚠ Error: ${escHtml(data.error)}</p>`;
+      resultEl.innerHTML = formatAiError(data.error, data.summary);
       return;
     }
 
@@ -1615,17 +1631,8 @@ async function runTailorResumeInTarget(tc, targetPrefix) {
     });
     const data = await resp.json();
 
-    if (data.error === "NO_API_KEY" || data.error === "INVALID_API_KEY") {
-      document.getElementById("api-key-banner")?.classList.remove("hidden");
-      resultEl.innerHTML = `<p class="warn-msg">⚠ ${data.error === "INVALID_API_KEY" ? "API key is invalid." : "Gemini API key not configured."}</p>`;
-      return;
-    }
-    if (data.error === "RATE_LIMIT_EXCEEDED") {
-      resultEl.innerHTML = `<div style="background:rgba(255,169,77,0.1);border:1px solid rgba(255,169,77,0.35);border-radius:8px;padding:0.75rem 0.9rem;margin-top:0.75rem;font-size:0.83rem"><div style="font-weight:600;color:var(--warn);margin-bottom:0.25rem">⏱ Gemini Rate Limit Reached</div><div>Please wait ~30 seconds and try again.</div></div>`;
-      return;
-    }
     if (data.error) {
-      resultEl.innerHTML = `<p class="warn-msg">⚠ Error: ${escHtml(data.error)}</p>`;
+      resultEl.innerHTML = formatAiError(data.error, data.summary);
       return;
     }
 
