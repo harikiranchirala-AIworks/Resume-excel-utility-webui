@@ -230,7 +230,7 @@ function switchHubTab(tabName) {
     b.classList.toggle("active", b.dataset.hubtab === tabName);
   });
 
-  const views = ["highlighter", "breakdown", "charts"];
+  const views = ["highlighter", "breakdown", "charts", "interview", "ats", "cover"];
   views.forEach(v => {
     const el = document.getElementById(`hub-view-${v}`);
     if (el) el.classList.toggle("hidden", v !== tabName);
@@ -1685,4 +1685,273 @@ function renderTailoredResumeInContainer(tc, data, containerEl) {
     </div>`;
 
   containerEl.innerHTML = html;
+}
+
+/* ═══════════════════════════ AI INTERVIEW PREP & STAR ANSWERS ════════ */
+
+async function runGenerateInterviewPrep() {
+  const jdText = getJdText();
+  if (!jdText) { alert("Please analyse a JD first."); return; }
+  const track = currentData?.best_track || activeTab || "AI";
+  const resumeText = getEffectiveResumeText(track);
+
+  const btn = document.getElementById("gen-interview-btn");
+  const bodyEl = document.getElementById("interview-prep-body");
+  btn.disabled = true;
+  btn.innerHTML = `<span class="ai-spinner"></span> Generating STAR Interview Q&A…`;
+
+  try {
+    const resp = await fetch("/interview_prep", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jd_text: jdText, resume_text: resumeText, track: track })
+    });
+    const data = await resp.json();
+    if (data.error === "NO_API_KEY" || data.error === "INVALID_API_KEY") {
+      document.getElementById("api-key-banner")?.classList.remove("hidden");
+      bodyEl.innerHTML = `<p class="warn-msg">⚠ Gemini API key required for Interview Prep.</p>`;
+      return;
+    }
+    if (data.error) {
+      bodyEl.innerHTML = `<p class="warn-msg">⚠ Error: ${escHtml(data.error)}</p>`;
+      return;
+    }
+    renderInterviewPrep(data);
+  } catch(e) {
+    bodyEl.innerHTML = `<p class="warn-msg">✗ Network error: ${escHtml(e.message)}</p>`;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = "🧠 Regenerate Q&A";
+  }
+}
+
+function renderInterviewPrep(data) {
+  const questions = data.questions || [];
+  const bodyEl = document.getElementById("interview-prep-body");
+
+  if (!questions.length) {
+    bodyEl.innerHTML = `<p class="warn-msg">No interview questions returned.</p>`;
+    return;
+  }
+
+  let html = `<div class="interview-q-list">`;
+  questions.forEach((q, idx) => {
+    const star = q.star_answer || {};
+    html += `
+      <div class="card interview-q-card">
+        <div class="iq-header">
+          <span class="iq-num">Q${idx + 1}</span>
+          <span class="iq-cat">${escHtml(q.category || "General")}</span>
+        </div>
+        <div class="iq-question">${escHtml(q.question)}</div>
+        ${q.why_asked ? `<div class="iq-why"><strong>🎯 Why Interviewers Ask This:</strong> ${escHtml(q.why_asked)}</div>` : ''}
+        
+        <div class="star-box">
+          <div class="star-title">⭐ STAR Method Model Answer</div>
+          <div class="star-grid">
+            <div class="star-step"><strong>S (Situation):</strong> ${escHtml(star.situation || "N/A")}</div>
+            <div class="star-step"><strong>T (Task):</strong> ${escHtml(star.task || "N/A")}</div>
+            <div class="star-step"><strong>A (Action):</strong> ${escHtml(star.action || "N/A")}</div>
+            <div class="star-step"><strong>R (Result):</strong> ${escHtml(star.result || "N/A")}</div>
+          </div>
+        </div>
+      </div>`;
+  });
+  html += `</div>`;
+  bodyEl.innerHTML = html;
+}
+
+/* ═══════════════════════════ ATS GATEKEEPER AUDIT ══════════════════ */
+
+async function runAtsAudit() {
+  const jdText = getJdText();
+  if (!jdText) { alert("Please analyse a JD first."); return; }
+  const track = currentData?.best_track || activeTab || "AI";
+  const resumeText = getEffectiveResumeText(track);
+  if (!resumeText) {
+    alert("Please upload or paste a resume first for ATS Gatekeeper Audit.");
+    return;
+  }
+
+  const btn = document.getElementById("run-ats-btn");
+  const bodyEl = document.getElementById("ats-audit-body");
+  btn.disabled = true;
+  btn.innerHTML = `<span class="ai-spinner"></span> Auditing Resume ATS Readiness…`;
+
+  try {
+    const resp = await fetch("/ats_audit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jd_text: jdText, resume_text: resumeText, track: track })
+    });
+    const data = await resp.json();
+    if (data.error === "NO_API_KEY" || data.error === "INVALID_API_KEY") {
+      document.getElementById("api-key-banner")?.classList.remove("hidden");
+      bodyEl.innerHTML = `<p class="warn-msg">⚠ Gemini API key required for ATS Audit.</p>`;
+      return;
+    }
+    if (data.error) {
+      bodyEl.innerHTML = `<p class="warn-msg">⚠ Error: ${escHtml(data.error)}</p>`;
+      return;
+    }
+    renderAtsAudit(data);
+  } catch(e) {
+    bodyEl.innerHTML = `<p class="warn-msg">✗ Network error: ${escHtml(e.message)}</p>`;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = "🔍 Re-Audit ATS Score";
+  }
+}
+
+function renderAtsAudit(data) {
+  const bodyEl = document.getElementById("ats-audit-body");
+  const score = data.score ?? 0;
+  const status = data.status || "Scannability Evaluated";
+  const covPct = data.keyword_coverage_pct ?? 0;
+  const fixes = data.fix_checklist || [];
+
+  const scoreColor = score >= 75 ? "var(--strong-color)" : score >= 50 ? "var(--moderate-color)" : "var(--weak-color)";
+
+  let html = `
+    <div class="ats-audit-card">
+      <div class="ats-score-row">
+        <div class="ats-score-gauge">
+          <div class="ats-score-num" style="color:${scoreColor}">${score}%</div>
+          <div class="ats-score-label">${escHtml(status)}</div>
+        </div>
+        <div class="ats-metrics-grid">
+          <div class="ats-metric-pill">
+            <span class="ats-m-icon">${data.keyword_coverage_pct >= 50 ? "✅" : "⚠️"}</span>
+            <div>
+              <div class="ats-m-title">Keyword Coverage</div>
+              <div class="ats-m-val">${covPct}%</div>
+            </div>
+          </div>
+          <div class="ats-metric-pill">
+            <span class="ats-m-icon">${data.has_metrics ? "✅" : "⚠️"}</span>
+            <div>
+              <div class="ats-m-title">Quantified Metrics</div>
+              <div class="ats-m-val">${data.has_metrics ? "Found (% / $ / Numbers)" : "Missing Metrics"}</div>
+            </div>
+          </div>
+          <div class="ats-metric-pill">
+            <span class="ats-m-icon">${data.has_power_verbs ? "✅" : "⚠️"}</span>
+            <div>
+              <div class="ats-m-title">Power Action Verbs</div>
+              <div class="ats-m-val">${data.has_power_verbs ? "Strong Action Verbs" : "Weak Verbs"}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ats-checklist-section">
+        <h4 style="color:var(--text);margin-bottom:0.75rem">📋 ATS Gatekeeper Optimization Checklist</h4>
+        <div class="ats-checklist">
+          ${fixes.map(item => `
+            <div class="ats-check-item ${item.type}">
+              <span class="ats-check-icon">${item.type === 'pass' ? '✅' : item.type === 'warn' ? '⚠️' : '❌'}</span>
+              <div class="ats-check-text">
+                <strong>${escHtml(item.check)}:</strong> ${escHtml(item.tip)}
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    </div>`;
+
+  bodyEl.innerHTML = html;
+}
+
+/* ═══════════════════════════ EXECUTIVE COVER LETTER ═════════════════ */
+
+window._currentCoverLetter = null;
+
+async function runGenerateCoverLetter() {
+  const jdText = getJdText();
+  if (!jdText) { alert("Please analyse a JD first."); return; }
+  const track = currentData?.best_track || activeTab || "AI";
+  const resumeText = getEffectiveResumeText(track);
+
+  const btn = document.getElementById("gen-cover-btn");
+  const bodyEl = document.getElementById("cover-letter-body");
+  btn.disabled = true;
+  btn.innerHTML = `<span class="ai-spinner"></span> Generating Executive Cover Letter…`;
+
+  try {
+    const resp = await fetch("/generate_cover_letter", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jd_text: jdText, resume_text: resumeText, track: track })
+    });
+    const data = await resp.json();
+    if (data.error === "NO_API_KEY" || data.error === "INVALID_API_KEY") {
+      document.getElementById("api-key-banner")?.classList.remove("hidden");
+      bodyEl.innerHTML = `<p class="warn-msg">⚠ Gemini API key required for Cover Letter.</p>`;
+      return;
+    }
+    if (data.error) {
+      bodyEl.innerHTML = `<p class="warn-msg">⚠ Error: ${escHtml(data.error)}</p>`;
+      return;
+    }
+    window._currentCoverLetter = data.cover_letter_markdown || "";
+    renderCoverLetter(data);
+  } catch(e) {
+    bodyEl.innerHTML = `<p class="warn-msg">✗ Network error: ${escHtml(e.message)}</p>`;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = "✉️ Regenerate Cover Letter";
+  }
+}
+
+function renderCoverLetter(data) {
+  const bodyEl = document.getElementById("cover-letter-body");
+  const md = data.cover_letter_markdown || "";
+  const jobTitle = data.job_title || "Target Role";
+
+  let html = `
+    <div class="cover-letter-card">
+      <div class="tailor-header">
+        <div class="tailor-title-badge">✉️ Executive Cover Letter — ${escHtml(jobTitle)}</div>
+        <div class="tailor-actions">
+          <button class="tailor-action-btn" onclick="copyCoverLetterMd()">📋 Copy Markdown</button>
+          <button class="tailor-action-btn" onclick="downloadCoverLetterDocx()">📥 Download Word (.docx)</button>
+        </div>
+      </div>
+      <div style="margin-top:0.75rem">
+        <textarea id="cover-letter-textarea" class="tailor-edit-textarea" style="height:320px" oninput="window._currentCoverLetter=this.value">${escHtml(md)}</textarea>
+      </div>
+    </div>`;
+
+  bodyEl.innerHTML = html;
+}
+
+function copyCoverLetterMd() {
+  const text = window._currentCoverLetter || document.getElementById("cover-letter-textarea")?.value || "";
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => { alert("Cover letter copied to clipboard!"); });
+}
+
+async function downloadCoverLetterDocx() {
+  const text = window._currentCoverLetter || document.getElementById("cover-letter-textarea")?.value || "";
+  if (!text) return;
+
+  const filename = "Executive_Cover_Letter.docx";
+  try {
+    const resp = await fetch("/download_cover_letter_docx", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cover_letter_markdown: text, filename: filename }),
+    });
+    const blob = await resp.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  } catch(e) {
+    alert("Download failed: " + e.message);
+  }
 }

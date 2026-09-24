@@ -216,6 +216,127 @@ def delete_history(session_id):
     return jsonify({"success": deleted})
 
 
+# ── ADVANCED FEATURES: INTERVIEW PREP, ATS AUDIT, COVER LETTER, MULTI-JD ────
+@app.route("/interview_prep", methods=["POST"])
+def interview_prep():
+    data = request.get_json(force=True)
+    jd_text = data.get("jd_text", "").strip()
+    resume_text = data.get("resume_text", "").strip()
+    track_code = data.get("track", "AI").strip().upper()
+
+    if not jd_text:
+        return jsonify({"error": "Job description is required."}), 400
+
+    from scorer import score_jd
+    try:
+        scoring_result = score_jd(jd_text)
+        scored_kws = scoring_result["tracks"].get(track_code, {}).get("keywords", [])
+    except Exception:
+        scored_kws = []
+
+    from ai_enhancer import generate_interview_prep
+    result = generate_interview_prep(jd_text, resume_text, track_code, scored_kws)
+    return jsonify(result)
+
+
+@app.route("/ats_audit", methods=["POST"])
+def ats_audit():
+    data = request.get_json(force=True)
+    jd_text = data.get("jd_text", "").strip()
+    resume_text = data.get("resume_text", "").strip()
+    track_code = data.get("track", "AI").strip().upper()
+
+    if not jd_text:
+        return jsonify({"error": "Job description is required."}), 400
+
+    from scorer import score_jd
+    try:
+        scoring_result = score_jd(jd_text)
+        scored_kws = scoring_result["tracks"].get(track_code, {}).get("keywords", [])
+    except Exception:
+        scored_kws = []
+
+    from ai_enhancer import audit_ats_readiness
+    result = audit_ats_readiness(jd_text, resume_text, track_code, scored_kws)
+    return jsonify(result)
+
+
+@app.route("/generate_cover_letter", methods=["POST"])
+def cover_letter():
+    data = request.get_json(force=True)
+    jd_text = data.get("jd_text", "").strip()
+    resume_text = data.get("resume_text", "").strip()
+    track_code = data.get("track", "AI").strip().upper()
+
+    if not jd_text:
+        return jsonify({"error": "Job description is required."}), 400
+
+    from ai_enhancer import generate_cover_letter
+    result = generate_cover_letter(jd_text, resume_text, track_code)
+    return jsonify(result)
+
+
+@app.route("/download_cover_letter_docx", methods=["POST"])
+def download_cover_letter_docx():
+    from io import BytesIO
+    from docx import Document
+    from flask import send_file
+
+    data = request.get_json(force=True)
+    markdown_text = data.get("markdown_text", "").strip()
+    filename = data.get("filename", "Executive_Cover_Letter.docx")
+
+    doc = Document()
+    for line in markdown_text.splitlines():
+        line_str = line.strip()
+        if line_str.startswith("# "):
+            doc.add_heading(line_str[2:], level=1)
+        elif line_str.startswith("## "):
+            doc.add_heading(line_str[3:], level=2)
+        elif line_str:
+            doc.add_paragraph(line_str)
+
+    target = BytesIO()
+    doc.save(target)
+    target.seek(0)
+    return send_file(
+        target,
+        mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        as_attachment=True,
+        download_name=filename
+    )
+
+
+@app.route("/compare_jds", methods=["POST"])
+def compare_jds():
+    data = request.get_json(force=True)
+    jds = data.get("jds", [])
+    if not jds or len(jds) < 2:
+        return jsonify({"error": "At least 2 Job Descriptions are required for comparison."}), 400
+
+    from scorer import score_jd
+    comparison_results = []
+    for idx, jd in enumerate(jds):
+        jd_text = jd.get("text", "").strip()
+        jd_title = jd.get("title", f"JD #{idx+1}").strip()
+        if not jd_text:
+            continue
+        try:
+            res = score_jd(jd_text)
+            comparison_results.append({
+                "title": jd_title,
+                "best_track": res.get("best_track"),
+                "best_pct": res.get("tracks", {}).get(res.get("best_track"), {}).get("pct", 0),
+                "signals": res.get("signals", {}),
+                "tracks": {tc: {"pct": t.get("pct"), "level": t.get("level")} for tc, t in res.get("tracks", {}).items()}
+            })
+        except Exception as e:
+            comparison_results.append({"title": jd_title, "error": str(e)})
+
+    return jsonify({"comparison": comparison_results})
+
+
+
 # ── AI PICK BEST TRACK ────────────────────────────────────────────────────────
 @app.route("/pick_track", methods=["POST"])
 def pick_track():

@@ -281,6 +281,9 @@
           <button class="hub-tab active" data-hubtab="highlighter" onclick="switchHubTab('highlighter')">✨ Keyword Highlighter</button>
           <button class="hub-tab" data-hubtab="breakdown" onclick="switchHubTab('breakdown')">🎯 Track Breakdown & Bullets</button>
           <button class="hub-tab" data-hubtab="charts" onclick="switchHubTab('charts')">📊 Score Charts & Analytics</button>
+          <button class="hub-tab" data-hubtab="interview" onclick="switchHubTab('interview')">💬 AI Interview Prep</button>
+          <button class="hub-tab" data-hubtab="ats" onclick="switchHubTab('ats')">🛡️ ATS Gatekeeper Audit</button>
+          <button class="hub-tab" data-hubtab="cover" onclick="switchHubTab('cover')">✉️ Executive Cover Letter</button>
         </div>
 
         <!-- Tab View 1: ✨ Interactive JD Keyword Highlighter -->
@@ -372,6 +375,63 @@
                 <div id="chart-side-ai-result"></div>
                 <div id="chart-side-tailor-result"></div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab View 4: 💬 AI Interview Prep -->
+        <div id="hub-view-interview" class="hub-view-panel hidden">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem">
+            <div>
+              <h3 style="margin:0;font-size:1.1rem;color:var(--accent2)">💬 AI Interview Prep & STAR Answers</h3>
+              <p style="color:var(--muted);font-size:0.85rem;margin-top:0.25rem">Top 10 role-specific interview questions with STAR method answer guides tailored to this JD.</p>
+            </div>
+            <button class="tailor-action-btn" id="gen-interview-btn" onclick="runGenerateInterviewPrep()">
+              🧠 Generate Interview Q&A
+            </button>
+          </div>
+          <div id="interview-prep-body">
+            <div style="text-align:center;padding:2.5rem 1rem;color:var(--muted)">
+              <div style="font-size:2.5rem;margin-bottom:0.5rem">💬</div>
+              <p style="font-size:0.9rem">Click <strong>"🧠 Generate Interview Q&A"</strong> above to generate 10 tailored interview questions and STAR method answer guides.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab View 5: 🛡️ ATS Gatekeeper Audit -->
+        <div id="hub-view-ats" class="hub-view-panel hidden">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem">
+            <div>
+              <h3 style="margin:0;font-size:1.1rem;color:var(--accent2)">🛡️ ATS Gatekeeper Scannability Audit</h3>
+              <p style="color:var(--muted);font-size:0.85rem;margin-top:0.25rem">Audit resume for formatting, keyword density, section headers, and action verb strength.</p>
+            </div>
+            <button class="tailor-action-btn" id="run-ats-btn" onclick="runAtsAudit()">
+              🔍 Audit My Resume ATS Score
+            </button>
+          </div>
+          <div id="ats-audit-body">
+            <div style="text-align:center;padding:2.5rem 1rem;color:var(--muted)">
+              <div style="font-size:2.5rem;margin-bottom:0.5rem">🛡️</div>
+              <p style="font-size:0.9rem">Click <strong>"🔍 Audit My Resume ATS Score"</strong> to evaluate your scannability rating (0-100%) and fix list.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab View 6: ✉️ Executive Cover Letter -->
+        <div id="hub-view-cover" class="hub-view-panel hidden">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem">
+            <div>
+              <h3 style="margin:0;font-size:1.1rem;color:var(--accent2)">✉️ Executive Cover Letter Generator</h3>
+              <p style="color:var(--muted);font-size:0.85rem;margin-top:0.25rem">Generates a tailored 3-paragraph executive cover letter aligned to this job description.</p>
+            </div>
+            <button class="tailor-action-btn" id="gen-cover-btn" onclick="runGenerateCoverLetter()">
+              ✉️ Generate Cover Letter
+            </button>
+          </div>
+          <div id="cover-letter-body">
+            <div style="text-align:center;padding:2.5rem 1rem;color:var(--muted)">
+              <div style="font-size:2.5rem;margin-bottom:0.5rem">✉️</div>
+              <p style="font-size:0.9rem">Click <strong>"✉️ Generate Cover Letter"</strong> to create your tailored executive cover letter.</p>
             </div>
           </div>
         </div>

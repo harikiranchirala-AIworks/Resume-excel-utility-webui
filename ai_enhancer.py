@@ -281,3 +281,193 @@ Respond ONLY with valid JSON (no markdown fences):
         if "503" in err_str or "UNAVAILABLE" in err_str:
             return {"error": "SERVICE_UNAVAILABLE"}
         return {"error": err_str}
+
+
+def generate_interview_prep(jd_text: str, resume_text: str, track_code: str, scored_kws: list[dict]) -> dict:
+    """
+    Generates top 10 JD & role specific interview questions with STAR method answer guides.
+    """
+    api_key = get_api_key()
+    if not api_key:
+        return {"error": "NO_API_KEY"}
+
+    from excel_reader import TRACK_LABELS
+    track_label = TRACK_LABELS.get(track_code, track_code)
+    matched = [k["keyword"] for k in scored_kws if k.get("score", 0) > 0]
+    missed = [k["keyword"] for k in scored_kws if k.get("score", 0) == 0]
+
+    resume_input = resume_text.strip()[:3500] if resume_text.strip() else "(No candidate resume provided - ground answers in candidate background placeholders)"
+
+    prompt = f"""You are an executive interviewer and interview coach for the **{track_label}** role.
+
+## Job Description
+{jd_text[:3000]}
+
+## Candidate Resume / Background
+{resume_input}
+
+## Key Skill Signals
+Matched Skills: {", ".join(matched[:10]) if matched else "None"}
+Gap Skills: {", ".join(missed[:10]) if missed else "None"}
+
+## Task
+Generate a structured JSON object containing 10 high-impact interview questions with tailored STAR method answers.
+
+Categories:
+1. Behavioral & Leadership (3 questions)
+2. Technical & Methodology (4 questions)
+3. Problem-Solving & Scenarios (3 questions)
+
+Respond ONLY with valid JSON (no markdown fences):
+{{
+  "questions": [
+    {{
+      "category": "Behavioral / Technical / Scenario",
+      "question": "<Specific, highly relevant interview question>",
+      "why_asked": "<Brief explanation of what interviewers evaluate>",
+      "star_answer": {{
+        "situation": "<Situation description incorporating JD context>",
+        "task": "<Task / challenge faced>",
+        "action": "<Action taken incorporating candidate resume skills & keywords>",
+        "result": "<Quantified impact & business outcome>"
+      }}
+    }}
+  ]
+}}"""
+
+    try:
+        import warnings
+        from google import genai
+        from google.genai import types
+        warnings.filterwarnings("ignore", category=UserWarning)
+        client = genai.Client(api_key=api_key)
+
+        response = client.models.generate_content(
+            model="models/gemini-3.6-flash",
+            contents=prompt,
+            config=types.GenerateContentConfig(temperature=0.4),
+        )
+
+        raw = response.text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1]
+            if raw.endswith("```"):
+                raw = raw.rsplit("```", 1)[0]
+        raw = raw.strip()
+
+        data = json.loads(raw)
+        data["error"] = None
+        return data
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def generate_cover_letter(jd_text: str, resume_text: str, track_code: str) -> dict:
+    """
+    Generates a tailored 3-paragraph executive cover letter.
+    """
+    api_key = get_api_key()
+    if not api_key:
+        return {"error": "NO_API_KEY"}
+
+    from excel_reader import TRACK_LABELS
+    track_label = TRACK_LABELS.get(track_code, track_code)
+    resume_input = resume_text.strip()[:3500] if resume_text.strip() else "(No candidate resume provided)"
+
+    prompt = f"""You are an executive career strategist.
+
+## Target Role
+{track_label}
+
+## Job Description
+{jd_text[:3000]}
+
+## Candidate Resume / Profile
+{resume_input}
+
+## Task
+Generate a highly persuasive, 3-paragraph executive cover letter connecting candidate achievements directly to the job description requirements.
+
+Strict Rule: Preserve candidate's real company names if provided; if no resume provided, use placeholders like [Company Name].
+
+Respond ONLY with valid JSON:
+{{
+  "job_title": "<target job title>",
+  "cover_letter_markdown": "<Formatted 3-paragraph cover letter starting with Dear Hiring Committee / Hiring Manager, ... ending with Sincerely, [Your Name]>"
+}}"""
+
+    try:
+        import warnings
+        from google import genai
+        from google.genai import types
+        warnings.filterwarnings("ignore", category=UserWarning)
+        client = genai.Client(api_key=api_key)
+
+        response = client.models.generate_content(
+            model="models/gemini-3.6-flash",
+            contents=prompt,
+            config=types.GenerateContentConfig(temperature=0.4),
+        )
+
+        raw = response.text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1]
+            if raw.endswith("```"):
+                raw = raw.rsplit("```", 1)[0]
+        raw = raw.strip()
+
+        data = json.loads(raw)
+        data["error"] = None
+        return data
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def audit_ats_readiness(jd_text: str, resume_text: str, track_code: str, scored_kws: list[dict]) -> dict:
+    """
+    Audits candidate resume against ATS scannability gatekeeper standards.
+    """
+    import re
+    matched = [k["keyword"] for k in scored_kws if k.get("score", 0) > 0]
+    missed = [k["keyword"] for k in scored_kws if k.get("score", 0) == 0]
+    total_kws = len(scored_kws)
+
+    keyword_coverage_pct = round((len(matched) / total_kws * 100)) if total_kws else 0
+
+    has_resume = bool(resume_text.strip())
+    text_lower = resume_text.lower() if has_resume else ""
+
+    headers_check = sum(1 for h in ["summary", "experience", "education", "skills"] if h in text_lower)
+    has_metrics = len(re.findall(r"\b\d+%\b|\$\d+|\b\d+\s*years?\b|\b\d+\+\b", text_lower)) > 2 if has_resume else False
+    has_power_verbs = len(re.findall(r"\b(led|managed|spearheaded|architected|engineered|delivered|directed|built|drove|implemented|instituted)\b", text_lower)) > 3 if has_resume else False
+
+    score = 0
+    score += min(45, keyword_coverage_pct * 0.45)
+    score += 20 if headers_check >= 3 else 10
+    score += 20 if has_metrics else 5
+    score += 15 if has_power_verbs else 5
+
+    final_score = min(100, round(score))
+    status = "Strong ATS Scannability" if final_score >= 80 else "Moderate Scannability Risk" if final_score >= 60 else "High ATS Gatekeeper Risk"
+
+    fix_checklist = []
+    if keyword_coverage_pct < 60:
+        fix_checklist.append(f"Incorporate missing core keywords: {', '.join(missed[:5])}")
+    if headers_check < 3:
+        fix_checklist.append("Use standard ATS section headings: Professional Summary, Work Experience, Core Competencies, Education.")
+    if not has_metrics:
+        fix_checklist.append("Quantify achievements in bullets with % improvements, team sizes, and budget metrics.")
+    if not has_power_verbs:
+        fix_checklist.append("Begin bullet points with strong action verbs (e.g. Spearheaded, Engineered, Directed, Delivered).")
+
+    return {
+        "score": final_score,
+        "status": status,
+        "keyword_coverage_pct": keyword_coverage_pct,
+        "matched_count": len(matched),
+        "total_keywords": total_kws,
+        "has_metrics": has_metrics,
+        "has_power_verbs": has_power_verbs,
+        "fix_checklist": fix_checklist
+    }
+
