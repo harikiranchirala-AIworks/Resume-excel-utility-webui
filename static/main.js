@@ -1860,14 +1860,23 @@ function renderAtsAudit(data) {
             const type = isObj ? (item.type || 'warn') : 'warn';
             const check = isObj ? (item.check || 'ATS Check') : 'Optimization Tip';
             const tip = isObj ? (item.tip || '') : item;
+            const resolution = isObj ? (item.resolution || null) : null;
             const icon = type === 'pass' ? '✅' : type === 'warn' ? '⚠️' : '❌';
 
             return `
-              <div class="ats-check-item ${type}">
-                <span class="ats-check-icon">${icon}</span>
-                <div class="ats-check-text">
-                  <strong>${escHtml(check)}:</strong> ${escHtml(tip)}
+              <div class="ats-check-card ${type}">
+                <div class="ats-check-header">
+                  <span class="ats-check-icon">${icon}</span>
+                  <div class="ats-check-text">
+                    <strong>${escHtml(check)}:</strong> ${escHtml(tip)}
+                  </div>
                 </div>
+                ${resolution ? `
+                  <div class="ats-resolution-box">
+                    <div class="ats-res-title">💡 Resolution & Suggested Resume Edits:</div>
+                    <div class="ats-res-content">${escHtml(resolution)}</div>
+                  </div>
+                ` : ''}
               </div>`;
           }).join("")}
         </div>

@@ -466,24 +466,65 @@ def audit_ats_readiness(jd_text: str, resume_text: str, track_code: str, scored_
 
     fix_checklist = []
     if keyword_coverage_pct >= 60:
-        fix_checklist.append({"type": "pass", "check": "Keyword Density", "tip": f"Strong keyword coverage ({keyword_coverage_pct}% matched)."})
+        fix_checklist.append({
+            "type": "pass",
+            "check": "Keyword Density",
+            "tip": f"Strong keyword coverage ({keyword_coverage_pct}% matched).",
+            "resolution": "Your resume already includes a healthy density of core track keywords."
+        })
     else:
-        fix_checklist.append({"type": "fail", "check": "Keyword Density", "tip": f"Incorporate missing core keywords: {', '.join(missed[:5])}"})
+        top_missed_str = ", ".join(missed[:5])
+        fix_checklist.append({
+            "type": "fail",
+            "check": "Keyword Density",
+            "tip": f"Incorporate missing core keywords: {top_missed_str}",
+            "resolution": f"Add a 'Core Competencies' section or copy/paste this tailored bullet into your experience:\n\"• Spearheaded {top_missed_str} across enterprise initiatives, delivering high-impact business outcomes.\""
+        })
 
     if headers_check >= 3:
-        fix_checklist.append({"type": "pass", "check": "Standard Headings", "tip": "Standard ATS section headings detected."})
+        fix_checklist.append({
+            "type": "pass",
+            "check": "Standard Headings",
+            "tip": "Standard ATS section headings detected.",
+            "resolution": "Your resume uses standard ATS-parseable section headers."
+        })
     else:
-        fix_checklist.append({"type": "fail", "check": "Standard Headings", "tip": "Use standard ATS section headings: Summary, Work Experience, Core Competencies, Education."})
+        fix_checklist.append({
+            "type": "fail",
+            "check": "Standard Headings",
+            "tip": "Use standard ATS section headings.",
+            "resolution": "Rename any non-standard headers (e.g. 'About Me', 'Background') to standard ATS titles:\n• ## PROFESSIONAL SUMMARY\n• ## CORE COMPETENCIES\n• ## PROFESSIONAL EXPERIENCE\n• ## EDUCATION & CERTIFICATIONS"
+        })
 
     if has_metrics:
-        fix_checklist.append({"type": "pass", "check": "Quantified Impact", "tip": "Quantified metrics (% / $ / scale) found in bullets."})
+        fix_checklist.append({
+            "type": "pass",
+            "check": "Quantified Impact",
+            "tip": "Quantified metrics (% / $ / scale) found in bullets.",
+            "resolution": "Good use of quantitative data in your bullet points."
+        })
     else:
-        fix_checklist.append({"type": "warn", "check": "Quantified Impact", "tip": "Quantify achievements in bullets with % improvements, team sizes, and budget metrics."})
+        fix_checklist.append({
+            "type": "warn",
+            "check": "Quantified Impact",
+            "tip": "Quantify achievements in bullets with % improvements, team sizes, and budget metrics.",
+            "resolution": "Transform passive bullets into measured outcomes:\n• Before: 'Responsible for managing project delivery.'\n• Recommended Fix: '• Managed end-to-end delivery of 8+ simultaneous enterprise projects, improving on-time release rate by 35% across a $2.5M budget.'"
+        })
 
     if has_power_verbs:
-        fix_checklist.append({"type": "pass", "check": "Power Action Verbs", "tip": "Bullet points begin with strong action verbs."})
+        fix_checklist.append({
+            "type": "pass",
+            "check": "Power Action Verbs",
+            "tip": "Bullet points begin with strong action verbs.",
+            "resolution": "Strong active verbs used throughout bullet points."
+        })
     else:
-        fix_checklist.append({"type": "warn", "check": "Power Action Verbs", "tip": "Begin bullet points with strong action verbs (e.g. Spearheaded, Engineered, Directed, Delivered)."})
+        fix_checklist.append({
+            "type": "warn",
+            "check": "Power Action Verbs",
+            "tip": "Begin bullet points with strong action verbs (e.g. Spearheaded, Engineered, Directed, Delivered).",
+            "resolution": "Replace weak verbs like 'Helped', 'Worked on', or 'Responsible for' with active verbs:\n• Recommended Action Verbs: Spearheaded, Architected, Engineered, Orchestrated, Instituted, Delivered.\n• Example Fix: '• Spearheaded cross-functional technical alignment, accelerating project milestones by 25%.'"
+        })
 
     return {
         "score": final_score,
