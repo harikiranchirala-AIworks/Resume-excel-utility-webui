@@ -20,6 +20,55 @@ def get_api_key() -> str | None:
     return os.getenv("GEMINI_API_KEY", "").strip() or None
 
 
+MODEL_FALLBACK_CHAIN = [
+    "models/gemini-3.6-flash",
+    "models/gemini-3.5-flash-lite",
+    "models/gemini-3.5-flash",
+    "models/gemini-3.7-flash",
+    "models/gemini-3.8-flash",
+    "models/gemini-flash-latest",
+    "models/gemini-flash-lite-latest",
+]
+
+
+def call_gemini_with_fallback(client, prompt: str, temperature: float = 0.4) -> tuple[str, str]:
+    """
+    Attempts to generate content using a robust multi-model fallback chain of Gemini AI models.
+    Tries each model in order, with automatic retry per model on 429/503/RESOURCE_EXHAUSTED errors.
+    Returns (raw_text_response, model_name_used).
+    """
+    import time
+    from google.genai import types
+
+    last_error = None
+
+    for model_name in MODEL_FALLBACK_CHAIN:
+        for attempt, wait in enumerate([0, 1.5]):
+            if wait:
+                time.sleep(wait)
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(temperature=temperature),
+                )
+                if response and response.text and response.text.strip():
+                    return response.text.strip(), model_name
+            except Exception as exc:
+                last_error = exc
+                err_str = str(exc)
+                if "429" in err_str or "503" in err_str or "RESOURCE_EXHAUSTED" in err_str or "UNAVAILABLE" in err_str or "Quota" in err_str:
+                    if attempt < 1:
+                        continue
+                    break  # Try next model in fallback chain
+                elif "404" in err_str or "NOT_FOUND" in err_str:
+                    break  # Skip non-supported model name immediately
+
+    if last_error:
+        raise last_error
+    raise RuntimeError("All fallback AI models were exhausted or unavailable.")
+
+
 def enhance_resume(
     jd_text: str,
     resume_text: str,
@@ -28,15 +77,6 @@ def enhance_resume(
 ) -> dict:
     """
     Call Gemini to produce gap analysis + resume suggestions.
-
-    Returns:
-      {
-        gap_keywords: [str],
-        suggested_bullets: [str],
-        section_suggestions: [str],
-        summary: str,
-        error: str | None
-      }
     """
     api_key = get_api_key()
     if not api_key:
@@ -94,17 +134,10 @@ Rules:
     try:
         import warnings
         from google import genai
-        from google.genai import types
         warnings.filterwarnings("ignore", category=UserWarning)
         client = genai.Client(api_key=api_key)
 
-        response = client.models.generate_content(
-            model="models/gemini-3.6-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(temperature=0.4),
-        )
-
-        raw = response.text.strip()
+        raw, model_used = call_gemini_with_fallback(client, prompt, temperature=0.4)
 
         # Strip markdown fences if model adds them
         if raw.startswith("```"):
@@ -115,6 +148,7 @@ Rules:
 
         data = json.loads(raw)
         data["error"] = None
+        data["model_used"] = model_used
         return data
 
     except json.JSONDecodeError as e:
@@ -230,36 +264,13 @@ Respond ONLY with valid JSON (no markdown fences):
 }}"""
 
     try:
-        import warnings, time
+        import warnings
         from google import genai
-        from google.genai import types
         warnings.filterwarnings("ignore", category=UserWarning)
         client = genai.Client(api_key=api_key)
 
-        response = None
-        last_exc = None
-        for attempt, wait in enumerate([0, 2, 4]):
-            if wait:
-                time.sleep(wait)
-            try:
-                response = client.models.generate_content(
-                    model="models/gemini-3.6-flash",
-                    contents=prompt,
-                    config=types.GenerateContentConfig(temperature=0.4),
-                )
-                break
-            except Exception as exc:
-                last_exc = exc
-                err_str = str(exc)
-                if "429" in err_str or "503" in err_str or "UNAVAILABLE" in err_str:
-                    if attempt < 2:
-                        continue
-                raise exc
+        raw, model_used = call_gemini_with_fallback(client, prompt, temperature=0.4)
 
-        if response is None and last_exc is not None:
-            raise last_exc
-
-        raw = response.text.strip()
         if raw.startswith("```"):
             raw = raw.split("\n", 1)[1]
             if raw.endswith("```"):
@@ -268,6 +279,7 @@ Respond ONLY with valid JSON (no markdown fences):
 
         data = json.loads(raw)
         data["error"] = None
+        data["model_used"] = model_used
         return data
 
     except json.JSONDecodeError as e:
@@ -338,17 +350,11 @@ Respond ONLY with valid JSON (no markdown fences):
     try:
         import warnings
         from google import genai
-        from google.genai import types
         warnings.filterwarnings("ignore", category=UserWarning)
         client = genai.Client(api_key=api_key)
 
-        response = client.models.generate_content(
-            model="models/gemini-3.6-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(temperature=0.4),
-        )
+        raw, model_used = call_gemini_with_fallback(client, prompt, temperature=0.4)
 
-        raw = response.text.strip()
         if raw.startswith("```"):
             raw = raw.split("\n", 1)[1]
             if raw.endswith("```"):
@@ -357,6 +363,7 @@ Respond ONLY with valid JSON (no markdown fences):
 
         data = json.loads(raw)
         data["error"] = None
+        data["model_used"] = model_used
         return data
     except Exception as e:
         err_str = str(e)
@@ -406,17 +413,11 @@ Respond ONLY with valid JSON:
     try:
         import warnings
         from google import genai
-        from google.genai import types
         warnings.filterwarnings("ignore", category=UserWarning)
         client = genai.Client(api_key=api_key)
 
-        response = client.models.generate_content(
-            model="models/gemini-3.6-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(temperature=0.4),
-        )
+        raw, model_used = call_gemini_with_fallback(client, prompt, temperature=0.4)
 
-        raw = response.text.strip()
         if raw.startswith("```"):
             raw = raw.split("\n", 1)[1]
             if raw.endswith("```"):
@@ -425,6 +426,7 @@ Respond ONLY with valid JSON:
 
         data = json.loads(raw)
         data["error"] = None
+        data["model_used"] = model_used
         return data
     except Exception as e:
         err_str = str(e)

@@ -447,9 +447,11 @@ async function runEnhancement(tc) {
 
   const btn = document.getElementById(`ai-btn-${tc}`);
   const resultEl = document.getElementById(`ai-result-${tc}`);
+  const tailorResEl = document.getElementById(`tailor-result-${tc}`);
   btn.disabled = true;
   btn.innerHTML = `<span class="ai-spinner"></span> Analysing…`;
-  resultEl.innerHTML = "";
+  if (resultEl) resultEl.innerHTML = "";
+  if (tailorResEl) tailorResEl.innerHTML = "";
 
   try {
     const resp = await fetch("/enhance", {
@@ -1020,9 +1022,11 @@ async function runTailorResume(tc) {
 
   const btn = document.getElementById(`tailor-btn-${tc}`);
   const resultEl = document.getElementById(`tailor-result-${tc}`);
+  const aiResEl = document.getElementById(`ai-result-${tc}`);
   btn.disabled = true;
   btn.innerHTML = `<span class="ai-spinner"></span> Tailoring Full Resume…`;
-  resultEl.innerHTML = "";
+  if (resultEl) resultEl.innerHTML = "";
+  if (aiResEl) aiResEl.innerHTML = "";
 
   try {
     const resp = await fetch("/tailor_resume", {
@@ -1583,11 +1587,13 @@ async function runEnhancementInTarget(tc, targetPrefix) {
 
   const btn = document.getElementById(`${targetPrefix}-ai-btn`);
   const resultEl = document.getElementById(`${targetPrefix}-ai-result`);
+  const resultEl2 = document.getElementById(`${targetPrefix}-tailor-result`);
   if (!btn || !resultEl) return;
 
   btn.disabled = true;
   btn.innerHTML = `<span class="ai-spinner"></span> Analysing…`;
-  resultEl.innerHTML = "";
+  if (resultEl) resultEl.innerHTML = "";
+  if (resultEl2) resultEl2.innerHTML = "";
 
   try {
     const resp = await fetch("/enhance", {
@@ -1617,11 +1623,13 @@ async function runTailorResumeInTarget(tc, targetPrefix) {
 
   const btn = document.getElementById(`${targetPrefix}-tailor-btn`);
   const resultEl = document.getElementById(`${targetPrefix}-tailor-result`);
+  const resultEl2 = document.getElementById(`${targetPrefix}-ai-result`);
   if (!btn || !resultEl) return;
 
   btn.disabled = true;
   btn.innerHTML = `<span class="ai-spinner"></span> Tailoring Full Resume…`;
-  resultEl.innerHTML = "";
+  if (resultEl) resultEl.innerHTML = "";
+  if (resultEl2) resultEl2.innerHTML = "";
 
   try {
     const resp = await fetch("/tailor_resume", {
