@@ -359,7 +359,14 @@ Respond ONLY with valid JSON (no markdown fences):
         data["error"] = None
         return data
     except Exception as e:
-        return {"error": str(e)}
+        err_str = str(e)
+        if "API_KEY_INVALID" in err_str or "API key not valid" in err_str:
+            return {"error": "INVALID_API_KEY"}
+        if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "Quota exceeded" in err_str:
+            return {"error": "RATE_LIMIT_EXCEEDED"}
+        if "503" in err_str or "UNAVAILABLE" in err_str:
+            return {"error": "SERVICE_UNAVAILABLE"}
+        return {"error": err_str}
 
 
 def generate_cover_letter(jd_text: str, resume_text: str, track_code: str) -> dict:
@@ -420,7 +427,14 @@ Respond ONLY with valid JSON:
         data["error"] = None
         return data
     except Exception as e:
-        return {"error": str(e)}
+        err_str = str(e)
+        if "API_KEY_INVALID" in err_str or "API key not valid" in err_str:
+            return {"error": "INVALID_API_KEY"}
+        if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "Quota exceeded" in err_str:
+            return {"error": "RATE_LIMIT_EXCEEDED"}
+        if "503" in err_str or "UNAVAILABLE" in err_str:
+            return {"error": "SERVICE_UNAVAILABLE"}
+        return {"error": err_str}
 
 
 def audit_ats_readiness(jd_text: str, resume_text: str, track_code: str, scored_kws: list[dict]) -> dict:
@@ -451,14 +465,25 @@ def audit_ats_readiness(jd_text: str, resume_text: str, track_code: str, scored_
     status = "Strong ATS Scannability" if final_score >= 80 else "Moderate Scannability Risk" if final_score >= 60 else "High ATS Gatekeeper Risk"
 
     fix_checklist = []
-    if keyword_coverage_pct < 60:
-        fix_checklist.append(f"Incorporate missing core keywords: {', '.join(missed[:5])}")
-    if headers_check < 3:
-        fix_checklist.append("Use standard ATS section headings: Professional Summary, Work Experience, Core Competencies, Education.")
-    if not has_metrics:
-        fix_checklist.append("Quantify achievements in bullets with % improvements, team sizes, and budget metrics.")
-    if not has_power_verbs:
-        fix_checklist.append("Begin bullet points with strong action verbs (e.g. Spearheaded, Engineered, Directed, Delivered).")
+    if keyword_coverage_pct >= 60:
+        fix_checklist.append({"type": "pass", "check": "Keyword Density", "tip": f"Strong keyword coverage ({keyword_coverage_pct}% matched)."})
+    else:
+        fix_checklist.append({"type": "fail", "check": "Keyword Density", "tip": f"Incorporate missing core keywords: {', '.join(missed[:5])}"})
+
+    if headers_check >= 3:
+        fix_checklist.append({"type": "pass", "check": "Standard Headings", "tip": "Standard ATS section headings detected."})
+    else:
+        fix_checklist.append({"type": "fail", "check": "Standard Headings", "tip": "Use standard ATS section headings: Summary, Work Experience, Core Competencies, Education."})
+
+    if has_metrics:
+        fix_checklist.append({"type": "pass", "check": "Quantified Impact", "tip": "Quantified metrics (% / $ / scale) found in bullets."})
+    else:
+        fix_checklist.append({"type": "warn", "check": "Quantified Impact", "tip": "Quantify achievements in bullets with % improvements, team sizes, and budget metrics."})
+
+    if has_power_verbs:
+        fix_checklist.append({"type": "pass", "check": "Power Action Verbs", "tip": "Bullet points begin with strong action verbs."})
+    else:
+        fix_checklist.append({"type": "warn", "check": "Power Action Verbs", "tip": "Begin bullet points with strong action verbs (e.g. Spearheaded, Engineered, Directed, Delivered)."})
 
     return {
         "score": final_score,

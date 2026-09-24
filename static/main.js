@@ -1790,6 +1790,14 @@ async function runAtsAudit() {
       bodyEl.innerHTML = `<p class="warn-msg">⚠ Gemini API key required for ATS Audit.</p>`;
       return;
     }
+    if (data.error === "RATE_LIMIT_EXCEEDED") {
+      bodyEl.innerHTML = `
+        <div style="background:rgba(255,169,77,0.1);border:1px solid rgba(255,169,77,0.35);border-radius:8px;padding:0.9rem 1.1rem;margin-top:0.5rem;font-size:0.88rem">
+          <div style="font-weight:700;color:var(--warn);margin-bottom:0.35rem">⏱ Gemini Rate Limit / Daily Quota Reached</div>
+          <div style="color:var(--text);line-height:1.5">Google AI free tier limit reached (15-20 req/min). Please wait ~30 seconds and click <strong>"🔍 Re-Audit ATS Score"</strong> again.</div>
+        </div>`;
+      return;
+    }
     if (data.error) {
       bodyEl.innerHTML = `<p class="warn-msg">⚠ Error: ${escHtml(data.error)}</p>`;
       return;
@@ -1847,14 +1855,21 @@ function renderAtsAudit(data) {
       <div class="ats-checklist-section">
         <h4 style="color:var(--text);margin-bottom:0.75rem">📋 ATS Gatekeeper Optimization Checklist</h4>
         <div class="ats-checklist">
-          ${fixes.map(item => `
-            <div class="ats-check-item ${item.type}">
-              <span class="ats-check-icon">${item.type === 'pass' ? '✅' : item.type === 'warn' ? '⚠️' : '❌'}</span>
-              <div class="ats-check-text">
-                <strong>${escHtml(item.check)}:</strong> ${escHtml(item.tip)}
-              </div>
-            </div>
-          `).join("")}
+          ${fixes.map(item => {
+            const isObj = typeof item === 'object' && item !== null;
+            const type = isObj ? (item.type || 'warn') : 'warn';
+            const check = isObj ? (item.check || 'ATS Check') : 'Optimization Tip';
+            const tip = isObj ? (item.tip || '') : item;
+            const icon = type === 'pass' ? '✅' : type === 'warn' ? '⚠️' : '❌';
+
+            return `
+              <div class="ats-check-item ${type}">
+                <span class="ats-check-icon">${icon}</span>
+                <div class="ats-check-text">
+                  <strong>${escHtml(check)}:</strong> ${escHtml(tip)}
+                </div>
+              </div>`;
+          }).join("")}
         </div>
       </div>
     </div>`;
@@ -1887,6 +1902,14 @@ async function runGenerateCoverLetter() {
     if (data.error === "NO_API_KEY" || data.error === "INVALID_API_KEY") {
       document.getElementById("api-key-banner")?.classList.remove("hidden");
       bodyEl.innerHTML = `<p class="warn-msg">⚠ Gemini API key required for Cover Letter.</p>`;
+      return;
+    }
+    if (data.error === "RATE_LIMIT_EXCEEDED") {
+      bodyEl.innerHTML = `
+        <div style="background:rgba(255,169,77,0.1);border:1px solid rgba(255,169,77,0.35);border-radius:8px;padding:0.9rem 1.1rem;margin-top:0.5rem;font-size:0.88rem">
+          <div style="font-weight:700;color:var(--warn);margin-bottom:0.35rem">⏱ Gemini Rate Limit / Daily Quota Reached</div>
+          <div style="color:var(--text);line-height:1.5">Google AI free tier limit reached (15-20 req/min). Please wait ~30 seconds and click <strong>"✉️ Regenerate Cover Letter"</strong> again.</div>
+        </div>`;
       return;
     }
     if (data.error) {
