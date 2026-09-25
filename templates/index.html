@@ -71,11 +71,21 @@
 
         <!-- Resumes Input Section (Collapsible) -->
         <section class="card compact-card mt-card" id="resume-section">
-          <div class="section-header-row" style="margin-bottom:0.4rem">
-            <h2 class="section-title" style="margin:0">📋 Your Resumes <span class="badge-optional">optional</span></h2>
-            <button class="toggle-collapse" onclick="toggleSection('resume-body')">⌄</button>
+          <div class="section-header-row" style="margin-bottom:0.4rem;flex-wrap:wrap;gap:0.5rem">
+            <div style="display:flex;align-items:center;gap:0.5rem">
+              <h2 class="section-title" style="margin:0">📋 Candidate Master Resumes</h2>
+              <span class="badge-optional" id="master-status-badge" style="background:rgba(0,212,170,0.18);color:var(--accent2);border:1px solid rgba(0,212,170,0.4)">💾 Saved on Disk</span>
+            </div>
+            <div style="display:flex;gap:0.5rem;align-items:center">
+              <button class="tailor-action-btn" style="font-size:0.78rem;padding:0.3rem 0.75rem;background:rgba(108,99,255,0.15);color:var(--accent);border-color:rgba(108,99,255,0.4)" id="save-master-btn" onclick="saveMasterResumesManually()">
+                💾 Save as Default Master
+              </button>
+              <button class="toggle-collapse" onclick="toggleSection('resume-body')">⌄</button>
+            </div>
           </div>
-          <p class="section-hint" style="margin-bottom:0.5rem">Upload or paste candidate resumes to generate AI tailored Executive Resumes.</p>
+          <p class="section-hint" style="margin-bottom:0.5rem">
+            <strong>One-Time Setup:</strong> Upload or paste your 4 track resumes once below. They are saved on disk and automatically compared against every new JD without needing to re-upload. You can update or re-upload anytime.
+          </p>
 
           <div id="resume-body">
             <div class="resume-tabs" id="resume-tab-bar">

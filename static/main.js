@@ -121,7 +121,8 @@ async function uploadResume(input, track) {
     // Also put in textarea for review
     const ta = document.querySelector(`.resume-textarea[data-track="${track}"]`);
     if (ta) ta.value = data.text;
-    statusEl.textContent = `✓ ${file.name} loaded (${data.text.length} chars)`;
+    statusEl.textContent = `✓ ${file.name} saved as Master Resume (${data.text.length} chars)`;
+    loadMasterResumes();
 
     // Automatically refresh AI cards if scoring data is loaded
     if (currentData) {
@@ -1177,11 +1178,74 @@ function copyTailoredMd(tc) {
   });
 }
 
-/* ═══════════════════════════ SESSION HISTORY ═════════════════════════ */
+/* ═══════════════════════════ MASTER RESUMES (PERSISTENT PROFILE) ══════ */
 
 document.addEventListener("DOMContentLoaded", () => {
   loadHistoryCount();
+  loadMasterResumes();
 });
+
+async function loadMasterResumes() {
+  try {
+    const resp = await fetch("/api/master_resumes");
+    const data = await resp.json();
+    const resumes = data.resumes || {};
+
+    let loadedCount = 0;
+    TRACK_ORDER.forEach(tc => {
+      if (resumes[tc] && resumes[tc].trim()) {
+        resumeTexts[tc] = resumes[tc].trim();
+        const ta = document.querySelector(`.resume-textarea[data-track="${tc}"]`);
+        if (ta) ta.value = resumes[tc].trim();
+        const statusEl = document.querySelector(`.upload-status[data-track="${tc}"]`);
+        if (statusEl) statusEl.textContent = `✓ Master Resume Loaded (${resumes[tc].length} chars)`;
+        loadedCount++;
+      }
+    });
+
+    const badge = document.getElementById("master-status-badge");
+    if (badge) {
+      if (loadedCount > 0) {
+        badge.textContent = `💾 ${loadedCount} Master Resume${loadedCount > 1 ? 's' : ''} Saved on Disk`;
+      } else {
+        badge.textContent = `💾 No Master Resumes Saved Yet`;
+      }
+    }
+  } catch (e) {
+    console.error("Failed to load master resumes:", e);
+  }
+}
+
+async function saveMasterResumesManually() {
+  syncResumeTexts();
+  const btn = document.getElementById("save-master-btn");
+  const origText = btn ? btn.innerHTML : "💾 Save as Default Master";
+  if (btn) { btn.disabled = true; btn.textContent = "Saving…"; }
+
+  try {
+    const resp = await fetch("/api/master_resumes/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ resumes: resumeTexts })
+    });
+    const data = await resp.json();
+    if (data.success) {
+      if (btn) {
+        btn.innerHTML = "✅ Saved as Master!";
+        setTimeout(() => { btn.innerHTML = origText; btn.disabled = false; }, 2000);
+      }
+      loadMasterResumes();
+    } else {
+      alert("Failed to save master resumes.");
+      if (btn) { btn.innerHTML = origText; btn.disabled = false; }
+    }
+  } catch (e) {
+    alert("Error saving master resumes: " + e.message);
+    if (btn) { btn.innerHTML = origText; btn.disabled = false; }
+  }
+}
+
+/* ═══════════════════════════ SESSION HISTORY ═════════════════════════ */
 
 async function loadHistoryCount() {
   try {

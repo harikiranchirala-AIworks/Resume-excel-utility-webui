@@ -58,7 +58,9 @@ def upload_resume():
         return jsonify({"error": "Empty filename."}), 400
     try:
         text = parse_resume(f.read(), f.filename)
-        return jsonify({"text": text, "track": track, "filename": f.filename})
+        from master_resumes import update_single_master_resume
+        updated_master = update_single_master_resume(track, text)
+        return jsonify({"text": text, "track": track, "filename": f.filename, "master_resumes": updated_master})
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     except Exception as e:
@@ -214,6 +216,23 @@ def delete_history(session_id):
     from history_manager import delete_history_session
     deleted = delete_history_session(session_id)
     return jsonify({"success": deleted})
+
+
+# ── MASTER RESUMES (ONE-TIME PERSISTENT RESUMES) ENDPOINTS ───────────────────
+@app.route("/api/master_resumes", methods=["GET"])
+def get_master_resumes():
+    from master_resumes import load_master_resumes
+    resumes = load_master_resumes()
+    return jsonify({"resumes": resumes})
+
+
+@app.route("/api/master_resumes/save", methods=["POST"])
+def save_master_resumes_endpoint():
+    data = request.get_json(force=True) or {}
+    resumes = data.get("resumes", {})
+    from master_resumes import save_master_resumes
+    saved = save_master_resumes(resumes)
+    return jsonify({"success": True, "resumes": saved})
 
 
 # ── ADVANCED FEATURES: INTERVIEW PREP, ATS AUDIT, COVER LETTER, MULTI-JD ────
