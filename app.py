@@ -140,6 +140,7 @@ def tailor_resume():
     jd_text = data.get("jd_text", "").strip()
     resume_text = data.get("resume_text", "").strip()
     track_code = data.get("track", "AI").strip().upper()
+    candidate_info = data.get("candidate_info", {})
 
     if not jd_text:
         return jsonify({"error": "Job description is required."}), 400
@@ -152,7 +153,7 @@ def tailor_resume():
         scored_kws = []
 
     from ai_enhancer import tailor_full_resume
-    result = tailor_full_resume(jd_text, resume_text, track_code, scored_kws)
+    result = tailor_full_resume(jd_text, resume_text, track_code, scored_kws, candidate_info)
     return jsonify(result)
 
 
@@ -230,9 +231,41 @@ def get_master_resumes():
 def save_master_resumes_endpoint():
     data = request.get_json(force=True) or {}
     resumes = data.get("resumes", {})
+    candidate_info = data.get("candidate_info", {})
+    if candidate_info:
+        resumes["candidate_info"] = candidate_info
     from master_resumes import save_master_resumes
     saved = save_master_resumes(resumes)
     return jsonify({"success": True, "resumes": saved})
+
+
+@app.route("/batch_upload_resumes", methods=["POST"])
+def batch_upload_resumes():
+    """Upload multiple resume files for tracks AI, TPM, ITDM, PM in one request."""
+    from master_resumes import save_master_resumes, load_master_resumes
+    current = load_master_resumes()
+    uploaded_counts = 0
+    errors = []
+
+    for track in ["AI", "TPM", "ITDM", "PM"]:
+        key = f"file_{track}"
+        if key in request.files:
+            f = request.files[key]
+            if f and f.filename:
+                try:
+                    text = parse_resume(f.read(), f.filename)
+                    current[track] = text
+                    uploaded_counts += 1
+                except Exception as e:
+                    errors.append(f"{track} file error: {str(e)}")
+
+    saved = save_master_resumes(current)
+    return jsonify({
+        "success": True,
+        "uploaded_count": uploaded_counts,
+        "errors": errors,
+        "resumes": saved
+    })
 
 
 # ── ADVANCED FEATURES: INTERVIEW PREP, ATS AUDIT, COVER LETTER, MULTI-JD ────
@@ -286,12 +319,13 @@ def cover_letter():
     jd_text = data.get("jd_text", "").strip()
     resume_text = data.get("resume_text", "").strip()
     track_code = data.get("track", "AI").strip().upper()
+    candidate_info = data.get("candidate_info", {})
 
     if not jd_text:
         return jsonify({"error": "Job description is required."}), 400
 
     from ai_enhancer import generate_cover_letter
-    result = generate_cover_letter(jd_text, resume_text, track_code)
+    result = generate_cover_letter(jd_text, resume_text, track_code, candidate_info)
     return jsonify(result)
 
 

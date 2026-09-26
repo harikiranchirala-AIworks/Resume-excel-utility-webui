@@ -73,10 +73,13 @@
         <section class="card compact-card mt-card" id="resume-section">
           <div class="section-header-row" style="margin-bottom:0.4rem;flex-wrap:wrap;gap:0.5rem">
             <div style="display:flex;align-items:center;gap:0.5rem">
-              <h2 class="section-title" style="margin:0">📋 Candidate Master Resumes</h2>
+              <h2 class="section-title" style="margin:0">📋 Candidate Master Resumes & Profile</h2>
               <span class="badge-optional" id="master-status-badge" style="background:rgba(0,212,170,0.18);color:var(--accent2);border:1px solid rgba(0,212,170,0.4)">💾 Saved on Disk</span>
             </div>
-            <div style="display:flex;gap:0.5rem;align-items:center">
+            <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
+              <button class="tailor-action-btn" style="font-size:0.78rem;padding:0.3rem 0.75rem;background:rgba(0,212,170,0.15);color:var(--accent2);border-color:rgba(0,212,170,0.4)" onclick="openBatchUploadModal()">
+                📁 Batch Upload All 4
+              </button>
               <button class="tailor-action-btn" style="font-size:0.78rem;padding:0.3rem 0.75rem;background:rgba(108,99,255,0.15);color:var(--accent);border-color:rgba(108,99,255,0.4)" id="save-master-btn" onclick="saveMasterResumesManually()">
                 💾 Save as Default Master
               </button>
@@ -84,11 +87,41 @@
             </div>
           </div>
           <p class="section-hint" style="margin-bottom:0.5rem">
-            <strong>One-Time Setup:</strong> Upload or paste your 4 track resumes once below. They are saved on disk and automatically compared against every new JD without needing to re-upload. You can update or re-upload anytime.
+            <strong>One-Time Setup:</strong> Fill candidate details once below and save your 4 track resumes. They are stored on disk and auto-loaded for all future JD analyses.
           </p>
 
           <div id="resume-body">
-            <div class="resume-tabs" id="resume-tab-bar">
+            <!-- Candidate Contact Details Bar -->
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:0.75rem;margin-bottom:0.75rem">
+              <div style="font-weight:600;color:var(--text);font-size:0.83rem;margin-bottom:0.4rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.4rem">
+                <span>👤 Candidate Contact Details (Auto-injected into generated resumes)</span>
+                <button class="tailor-action-btn" style="font-size:0.72rem;padding:0.2rem 0.5rem" onclick="autoDetectContactDetails()">⚡ Auto-Detect from Resume</button>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(170px, 1fr));gap:0.4rem">
+                <div>
+                  <label style="font-size:0.73rem;color:var(--muted);display:block;margin-bottom:0.15rem">Full Name</label>
+                  <input type="text" id="cand-name" placeholder="e.g. Hari Kiran" style="width:100%;padding:0.35rem;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:0.82rem" onchange="saveCandidateProfileLive()" />
+                </div>
+                <div>
+                  <label style="font-size:0.73rem;color:var(--muted);display:block;margin-bottom:0.15rem">Location</label>
+                  <input type="text" id="cand-loc" placeholder="e.g. New York, NY / Remote" style="width:100%;padding:0.35rem;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:0.82rem" onchange="saveCandidateProfileLive()" />
+                </div>
+                <div>
+                  <label style="font-size:0.73rem;color:var(--muted);display:block;margin-bottom:0.15rem">Phone Number</label>
+                  <input type="text" id="cand-phone" placeholder="e.g. +1 (555) 019-2834" style="width:100%;padding:0.35rem;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:0.82rem" onchange="saveCandidateProfileLive()" />
+                </div>
+                <div>
+                  <label style="font-size:0.73rem;color:var(--muted);display:block;margin-bottom:0.15rem">Email Address</label>
+                  <input type="email" id="cand-email" placeholder="e.g. candidate@email.com" style="width:100%;padding:0.35rem;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:0.82rem" onchange="saveCandidateProfileLive()" />
+                </div>
+                <div>
+                  <label style="font-size:0.73rem;color:var(--muted);display:block;margin-bottom:0.15rem">LinkedIn URL</label>
+                  <input type="text" id="cand-linkedin" placeholder="e.g. linkedin.com/in/username" style="width:100%;padding:0.35rem;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:0.82rem" onchange="saveCandidateProfileLive()" />
+                </div>
+              </div>
+            </div>
+
+            <div class="resume-tabs" id="resume-tab-bar" style="display:flex;flex-wrap:wrap;gap:0.35rem;margin-bottom:0.5rem">
               <button class="resume-tab active" data-track="AI" onclick="switchResumeTab('AI')">🤖 AI Track</button>
               <button class="resume-tab" data-track="TPM" onclick="switchResumeTab('TPM')">📊 TPM Track</button>
               <button class="resume-tab" data-track="ITDM" onclick="switchResumeTab('ITDM')">💻 ITDM Track</button>
@@ -98,14 +131,17 @@
             <div id="resume-panels">
               <!-- AI -->
               <div class="resume-panel" data-track="AI">
-                <div class="resume-input-toggle">
-                  <button class="toggle-btn active" data-rtab="paste" onclick="setResumeMode('AI','paste')">Paste</button>
-                  <button class="toggle-btn" data-rtab="upload" onclick="setResumeMode('AI','upload')">Upload File</button>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem;flex-wrap:wrap;gap:0.4rem">
+                  <div class="resume-input-toggle">
+                    <button class="toggle-btn active" data-rtab="paste" onclick="setResumeMode('AI','paste')">Paste Text</button>
+                    <button class="toggle-btn" data-rtab="upload" onclick="setResumeMode('AI','upload')">🔁 Upload & Overwrite</button>
+                  </div>
+                  <button class="secondary" style="font-size:0.72rem;padding:0.2rem 0.5rem" onclick="clearTrackResume('AI')">🗑️ Clear</button>
                 </div>
                 <textarea class="resume-textarea" data-track="AI" rows="6" placeholder="Paste your AI Transformation Manager resume here..."></textarea>
                 <div class="upload-area hidden" data-track="AI">
                   <label class="file-label">
-                    <span>📄 Choose .txt / .pdf / .docx</span>
+                    <span>📄 Choose .txt / .pdf / .docx to Overwrite</span>
                     <input type="file" accept=".txt,.pdf,.docx" onchange="uploadResume(this,'AI')" />
                   </label>
                   <span class="upload-status" data-track="AI"></span>
@@ -113,14 +149,17 @@
               </div>
               <!-- TPM -->
               <div class="resume-panel hidden" data-track="TPM">
-                <div class="resume-input-toggle">
-                  <button class="toggle-btn active" data-rtab="paste" onclick="setResumeMode('TPM','paste')">Paste</button>
-                  <button class="toggle-btn" data-rtab="upload" onclick="setResumeMode('TPM','upload')">Upload File</button>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem;flex-wrap:wrap;gap:0.4rem">
+                  <div class="resume-input-toggle">
+                    <button class="toggle-btn active" data-rtab="paste" onclick="setResumeMode('TPM','paste')">Paste Text</button>
+                    <button class="toggle-btn" data-rtab="upload" onclick="setResumeMode('TPM','upload')">🔁 Upload & Overwrite</button>
+                  </div>
+                  <button class="secondary" style="font-size:0.72rem;padding:0.2rem 0.5rem" onclick="clearTrackResume('TPM')">🗑️ Clear</button>
                 </div>
                 <textarea class="resume-textarea" data-track="TPM" rows="6" placeholder="Paste your Technical Program Manager resume here..."></textarea>
                 <div class="upload-area hidden" data-track="TPM">
                   <label class="file-label">
-                    <span>📄 Choose .txt / .pdf / .docx</span>
+                    <span>📄 Choose .txt / .pdf / .docx to Overwrite</span>
                     <input type="file" accept=".txt,.pdf,.docx" onchange="uploadResume(this,'TPM')" />
                   </label>
                   <span class="upload-status" data-track="TPM"></span>
@@ -128,14 +167,17 @@
               </div>
               <!-- ITDM -->
               <div class="resume-panel hidden" data-track="ITDM">
-                <div class="resume-input-toggle">
-                  <button class="toggle-btn active" data-rtab="paste" onclick="setResumeMode('ITDM','paste')">Paste</button>
-                  <button class="toggle-btn" data-rtab="upload" onclick="setResumeMode('ITDM','upload')">Upload File</button>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem;flex-wrap:wrap;gap:0.4rem">
+                  <div class="resume-input-toggle">
+                    <button class="toggle-btn active" data-rtab="paste" onclick="setResumeMode('ITDM','paste')">Paste Text</button>
+                    <button class="toggle-btn" data-rtab="upload" onclick="setResumeMode('ITDM','upload')">🔁 Upload & Overwrite</button>
+                  </div>
+                  <button class="secondary" style="font-size:0.72rem;padding:0.2rem 0.5rem" onclick="clearTrackResume('ITDM')">🗑️ Clear</button>
                 </div>
                 <textarea class="resume-textarea" data-track="ITDM" rows="6" placeholder="Paste your IT Delivery Manager resume here..."></textarea>
                 <div class="upload-area hidden" data-track="ITDM">
                   <label class="file-label">
-                    <span>📄 Choose .txt / .pdf / .docx</span>
+                    <span>📄 Choose .txt / .pdf / .docx to Overwrite</span>
                     <input type="file" accept=".txt,.pdf,.docx" onchange="uploadResume(this,'ITDM')" />
                   </label>
                   <span class="upload-status" data-track="ITDM"></span>
@@ -143,14 +185,17 @@
               </div>
               <!-- PM -->
               <div class="resume-panel hidden" data-track="PM">
-                <div class="resume-input-toggle">
-                  <button class="toggle-btn active" data-rtab="paste" onclick="setResumeMode('PM','paste')">Paste</button>
-                  <button class="toggle-btn" data-rtab="upload" onclick="setResumeMode('PM','upload')">Upload File</button>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem;flex-wrap:wrap;gap:0.4rem">
+                  <div class="resume-input-toggle">
+                    <button class="toggle-btn active" data-rtab="paste" onclick="setResumeMode('PM','paste')">Paste Text</button>
+                    <button class="toggle-btn" data-rtab="upload" onclick="setResumeMode('PM','upload')">🔁 Upload & Overwrite</button>
+                  </div>
+                  <button class="secondary" style="font-size:0.72rem;padding:0.2rem 0.5rem" onclick="clearTrackResume('PM')">🗑️ Clear</button>
                 </div>
                 <textarea class="resume-textarea" data-track="PM" rows="6" placeholder="Paste your Product Manager resume here..."></textarea>
                 <div class="upload-area hidden" data-track="PM">
                   <label class="file-label">
-                    <span>📄 Choose .txt / .pdf / .docx</span>
+                    <span>📄 Choose .txt / .pdf / .docx to Overwrite</span>
                     <input type="file" accept=".txt,.pdf,.docx" onchange="uploadResume(this,'PM')" />
                   </label>
                   <span class="upload-status" data-track="PM"></span>
@@ -492,6 +537,46 @@
   <footer>
     <p>Resume Excel Utility &middot; Powered by Python + Flask + Gemini</p>
   </footer>
+
+  <!-- ── BATCH UPLOAD MODAL ── -->
+  <div id="batch-upload-modal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width:550px">
+      <div class="modal-header">
+        <div class="modal-title">📁 Batch Upload Master Resumes</div>
+        <button class="modal-close-btn" onclick="closeBatchUploadModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:0.85rem;color:var(--muted);margin:0 0 1rem">
+          Select resume files (.pdf, .docx, .txt) for all 4 tracks to upload and overwrite master resumes in a single action:
+        </p>
+        <form id="batch-upload-form" onsubmit="submitBatchUpload(event)">
+          <div style="display:flex;flex-direction:column;gap:0.75rem">
+            <div style="background:var(--surface2);padding:0.6rem;border-radius:6px;border:1px solid var(--border)">
+              <label style="font-weight:600;font-size:0.83rem;color:var(--accent);display:block;margin-bottom:0.2rem">🤖 AI Transformation Track Resume</label>
+              <input type="file" id="batch-file-AI" accept=".txt,.pdf,.docx" style="width:100%;font-size:0.82rem;color:var(--text)" />
+            </div>
+            <div style="background:var(--surface2);padding:0.6rem;border-radius:6px;border:1px solid var(--border)">
+              <label style="font-weight:600;font-size:0.83rem;color:var(--accent);display:block;margin-bottom:0.2rem">📊 Technical Program Manager (TPM) Resume</label>
+              <input type="file" id="batch-file-TPM" accept=".txt,.pdf,.docx" style="width:100%;font-size:0.82rem;color:var(--text)" />
+            </div>
+            <div style="background:var(--surface2);padding:0.6rem;border-radius:6px;border:1px solid var(--border)">
+              <label style="font-weight:600;font-size:0.83rem;color:var(--accent);display:block;margin-bottom:0.2rem">💻 IT Delivery Manager (ITDM) Resume</label>
+              <input type="file" id="batch-file-ITDM" accept=".txt,.pdf,.docx" style="width:100%;font-size:0.82rem;color:var(--text)" />
+            </div>
+            <div style="background:var(--surface2);padding:0.6rem;border-radius:6px;border:1px solid var(--border)">
+              <label style="font-weight:600;font-size:0.83rem;color:var(--accent);display:block;margin-bottom:0.2rem">📦 Product Manager (PM) Resume</label>
+              <input type="file" id="batch-file-PM" accept=".txt,.pdf,.docx" style="width:100%;font-size:0.82rem;color:var(--text)" />
+            </div>
+          </div>
+          <div id="batch-upload-status" style="margin-top:0.75rem;font-size:0.83rem"></div>
+          <div style="display:flex;justify-content:flex-end;gap:0.5rem;margin-top:1.25rem">
+            <button type="button" class="secondary" onclick="closeBatchUploadModal()">Cancel</button>
+            <button type="submit" class="tailor-btn" id="batch-upload-submit-btn">🔁 Upload & Overwrite Selected</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 
   <!-- ── HISTORY MODAL ── -->
   <div id="history-modal" class="modal-overlay hidden">

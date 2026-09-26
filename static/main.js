@@ -1033,7 +1033,7 @@ async function runTailorResume(tc) {
     const resp = await fetch("/tailor_resume", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jd_text: jdText, resume_text: getEffectiveResumeText(tc), track: tc }),
+      body: JSON.stringify({ jd_text: jdText, resume_text: getEffectiveResumeText(tc), track: tc, candidate_info: getCandidateInfo() }),
     });
     const data = await resp.json();
 
@@ -1185,23 +1185,59 @@ document.addEventListener("DOMContentLoaded", () => {
   loadMasterResumes();
 });
 
+function getCandidateInfo() {
+  return {
+    name: (document.getElementById("cand-name")?.value || "").trim(),
+    location: (document.getElementById("cand-loc")?.value || "").trim(),
+    phone: (document.getElementById("cand-phone")?.value || "").trim(),
+    email: (document.getElementById("cand-email")?.value || "").trim(),
+    linkedin: (document.getElementById("cand-linkedin")?.value || "").trim(),
+  };
+}
+
+async function saveCandidateProfileLive() {
+  const candidate_info = getCandidateInfo();
+  syncResumeTexts();
+  try {
+    await fetch("/api/master_resumes/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ resumes: resumeTexts, candidate_info })
+    });
+  } catch (e) {
+    console.error("Failed to save candidate profile:", e);
+  }
+}
+
 async function loadMasterResumes() {
   try {
     const resp = await fetch("/api/master_resumes");
     const data = await resp.json();
-    const resumes = data.resumes || {};
+    const dataObj = data.resumes || {};
 
     let loadedCount = 0;
     TRACK_ORDER.forEach(tc => {
-      if (resumes[tc] && resumes[tc].trim()) {
-        resumeTexts[tc] = resumes[tc].trim();
+      if (dataObj[tc] && dataObj[tc].trim()) {
+        resumeTexts[tc] = dataObj[tc].trim();
         const ta = document.querySelector(`.resume-textarea[data-track="${tc}"]`);
-        if (ta) ta.value = resumes[tc].trim();
+        if (ta) ta.value = dataObj[tc].trim();
         const statusEl = document.querySelector(`.upload-status[data-track="${tc}"]`);
-        if (statusEl) statusEl.textContent = `✓ Master Resume Loaded (${resumes[tc].length} chars)`;
+        if (statusEl) statusEl.textContent = `✓ Master Resume Loaded (${dataObj[tc].length} chars)`;
         loadedCount++;
+      } else {
+        const ta = document.querySelector(`.resume-textarea[data-track="${tc}"]`);
+        if (ta) ta.value = "";
+        const statusEl = document.querySelector(`.upload-status[data-track="${tc}"]`);
+        if (statusEl) statusEl.textContent = "";
       }
     });
+
+    const info = dataObj.candidate_info || {};
+    if (document.getElementById("cand-name")) document.getElementById("cand-name").value = info.name || "";
+    if (document.getElementById("cand-loc")) document.getElementById("cand-loc").value = info.location || "";
+    if (document.getElementById("cand-phone")) document.getElementById("cand-phone").value = info.phone || "";
+    if (document.getElementById("cand-email")) document.getElementById("cand-email").value = info.email || "";
+    if (document.getElementById("cand-linkedin")) document.getElementById("cand-linkedin").value = info.linkedin || "";
 
     const badge = document.getElementById("master-status-badge");
     if (badge) {
@@ -1218,6 +1254,7 @@ async function loadMasterResumes() {
 
 async function saveMasterResumesManually() {
   syncResumeTexts();
+  const candidate_info = getCandidateInfo();
   const btn = document.getElementById("save-master-btn");
   const origText = btn ? btn.innerHTML : "💾 Save as Default Master";
   if (btn) { btn.disabled = true; btn.textContent = "Saving…"; }
@@ -1226,7 +1263,7 @@ async function saveMasterResumesManually() {
     const resp = await fetch("/api/master_resumes/save", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ resumes: resumeTexts })
+      body: JSON.stringify({ resumes: resumeTexts, candidate_info })
     });
     const data = await resp.json();
     if (data.success) {
@@ -1242,6 +1279,109 @@ async function saveMasterResumesManually() {
   } catch (e) {
     alert("Error saving master resumes: " + e.message);
     if (btn) { btn.innerHTML = origText; btn.disabled = false; }
+  }
+}
+
+function autoDetectContactDetails() {
+  let combined = "";
+  TRACK_ORDER.forEach(tc => { combined += (resumeTexts[tc] || "") + "\n"; });
+  if (!combined.trim()) { alert("Please paste or upload a master resume first."); return; }
+
+  // Extract Email
+  const emailMatch = combined.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+  if (emailMatch && document.getElementById("cand-email") && !document.getElementById("cand-email").value) {
+    document.getElementById("cand-email").value = emailMatch[0];
+  }
+
+  // Extract Phone
+  const phoneMatch = combined.match(/(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/);
+  if (phoneMatch && document.getElementById("cand-phone") && !document.getElementById("cand-phone").value) {
+    document.getElementById("cand-phone").value = phoneMatch[0];
+  }
+
+  // Extract LinkedIn
+  const linkedinMatch = combined.match(/linkedin\.com\/in\/[a-zA-Z0-9_-]+/i);
+  if (linkedinMatch && document.getElementById("cand-linkedin") && !document.getElementById("cand-linkedin").value) {
+    document.getElementById("cand-linkedin").value = linkedinMatch[0];
+  }
+
+  // Extract Name (First line if short)
+  const lines = combined.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+  if (lines.length > 0 && document.getElementById("cand-name") && !document.getElementById("cand-name").value) {
+    const firstLine = lines[0];
+    if (firstLine.length < 40 && !firstLine.includes("@") && !firstLine.includes("http")) {
+      document.getElementById("cand-name").value = firstLine;
+    }
+  }
+
+  saveCandidateProfileLive();
+  alert("✓ Contact details detected and saved!");
+}
+
+function clearTrackResume(track) {
+  if (confirm(`Are you sure you want to clear the master resume for ${track} track?`)) {
+    resumeTexts[track] = "";
+    const ta = document.querySelector(`.resume-textarea[data-track="${track}"]`);
+    if (ta) ta.value = "";
+    const statusEl = document.querySelector(`.upload-status[data-track="${track}"]`);
+    if (statusEl) statusEl.textContent = "";
+    saveMasterResumesManually();
+  }
+}
+
+function openBatchUploadModal() {
+  document.getElementById("batch-upload-modal")?.classList.remove("hidden");
+}
+
+function closeBatchUploadModal() {
+  document.getElementById("batch-upload-modal")?.classList.add("hidden");
+  const statusEl = document.getElementById("batch-upload-status");
+  if (statusEl) statusEl.innerHTML = "";
+}
+
+async function submitBatchUpload(e) {
+  e.preventDefault();
+  const formData = new FormData();
+  let fileCount = 0;
+
+  TRACK_ORDER.forEach(tc => {
+    const fileInput = document.getElementById(`batch-file-${tc}`);
+    if (fileInput && fileInput.files[0]) {
+      formData.append(`file_${tc}`, fileInput.files[0]);
+      fileCount++;
+    }
+  });
+
+  if (fileCount === 0) {
+    alert("Please select at least one file to upload.");
+    return;
+  }
+
+  const btn = document.getElementById("batch-upload-submit-btn");
+  const statusEl = document.getElementById("batch-upload-status");
+  if (btn) { btn.disabled = true; btn.textContent = "Uploading & Parsing…"; }
+  if (statusEl) statusEl.innerHTML = `<span style="color:var(--accent2)">⏳ Processing ${fileCount} files…</span>`;
+
+  try {
+    const resp = await fetch("/batch_upload_resumes", {
+      method: "POST",
+      body: formData
+    });
+    const data = await resp.json();
+
+    if (data.success) {
+      if (statusEl) statusEl.innerHTML = `<span style="color:var(--accent2)">✅ Uploaded ${data.uploaded_count} resume(s) successfully!</span>`;
+      setTimeout(() => {
+        closeBatchUploadModal();
+        loadMasterResumes();
+      }, 1200);
+    } else {
+      if (statusEl) statusEl.innerHTML = `<span style="color:var(--error)">✗ Upload failed.</span>`;
+    }
+  } catch (err) {
+    if (statusEl) statusEl.innerHTML = `<span style="color:var(--error)">✗ Error: ${escHtml(err.message)}</span>`;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = "🔁 Upload & Overwrite Selected"; }
   }
 }
 
@@ -1984,7 +2124,7 @@ async function runGenerateCoverLetter() {
     const resp = await fetch("/generate_cover_letter", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jd_text: jdText, resume_text: resumeText, track: track })
+      body: JSON.stringify({ jd_text: jdText, resume_text: resumeText, track: track, candidate_info: getCandidateInfo() })
     });
     const data = await resp.json();
     if (data.error === "NO_API_KEY" || data.error === "INVALID_API_KEY") {

@@ -194,7 +194,69 @@ Rules:
         }
 
 
-def tailor_full_resume(jd_text: str, resume_text: str, track_code: str, scored_kws: list[dict]) -> dict:
+def inject_candidate_details(markdown_text: str, candidate_info: dict = None) -> str:
+    """
+    Ensures that full markdown resume headers use the candidate's actual name and contact details,
+    replacing placeholder brackets such as [First Name] [Last Name], [Email Address], etc.
+    """
+    if not markdown_text:
+        return ""
+    if not candidate_info or not isinstance(candidate_info, dict):
+        candidate_info = {}
+
+    name = candidate_info.get("name", "").strip() or "Candidate Name"
+    location = candidate_info.get("location", "").strip() or "City, State / Remote"
+    phone = candidate_info.get("phone", "").strip() or "Phone Number"
+    email = candidate_info.get("email", "").strip() or "Email Address"
+    linkedin = candidate_info.get("linkedin", "").strip() or "LinkedIn Profile URL"
+
+    header_line = f"# {name}\n{location} | {phone} | {email} | {linkedin}"
+
+    import re
+    replacements = [
+        (r"#\s*\[First Name\]\s*\[Last Name\]", f"# {name}"),
+        (r"#\s*\[Full Name\]", f"# {name}"),
+        (r"#\s*\[Candidate Name\]", f"# {name}"),
+        (r"#\s*\[Name\]", f"# {name}"),
+        (r"\[First Name\]\s*\[Last Name\]", name),
+        (r"\[Full Name\]", name),
+        (r"\[Candidate Name\]", name),
+        (r"\[Your Name\]", name),
+        (r"\[City,\s*State\s*/\s*Remote\]", location),
+        (r"\[City,\s*State\]", location),
+        (r"\[Phone Number\]", phone),
+        (r"\[Phone\]", phone),
+        (r"\[Email Address\]", email),
+        (r"\[Email\]", email),
+        (r"\[LinkedIn Profile URL\]", linkedin),
+        (r"\[LinkedIn URL\]", linkedin),
+        (r"\[LinkedIn\]", linkedin),
+    ]
+
+    result = markdown_text
+    for pattern, repl in replacements:
+        result = re.sub(pattern, repl, result, flags=re.IGNORECASE)
+
+    # If header name is missing or starts with generic # Resume, fix top line
+    lines = result.strip().splitlines()
+    if lines:
+        first_line = lines[0].strip()
+        if not first_line.startswith("# ") or "[First Name]" in first_line or "Candidate Name" in first_line:
+            # Replace top header or prepend
+            if first_line.startswith("# "):
+                lines[0] = f"# {name}"
+                if len(lines) > 1 and ("|" in lines[1] or "[" in lines[1]):
+                    lines[1] = f"{location} | {phone} | {email} | {linkedin}"
+                else:
+                    lines.insert(1, f"{location} | {phone} | {email} | {linkedin}")
+                result = "\n".join(lines)
+            else:
+                result = f"{header_line}\n\n" + result
+
+    return result
+
+
+def tailor_full_resume(jd_text: str, resume_text: str, track_code: str, scored_kws: list[dict], candidate_info: dict = None) -> dict:
     """
     Uses Gemini 3.6 Flash to rewrite the candidate's entire resume tailored specifically to the JD.
     Returns structured dict with tailored summary, skills, experience, and full markdown text.
@@ -211,6 +273,25 @@ def tailor_full_resume(jd_text: str, resume_text: str, track_code: str, scored_k
 
     has_resume = bool(resume_text.strip())
 
+    cand_name = candidate_info.get('name', '').strip() if candidate_info else ''
+    cand_loc = candidate_info.get('location', '').strip() if candidate_info else ''
+    cand_phone = candidate_info.get('phone', '').strip() if candidate_info else ''
+    cand_email = candidate_info.get('email', '').strip() if candidate_info else ''
+    cand_li = candidate_info.get('linkedin', '').strip() if candidate_info else ''
+
+    cand_contact_block = f"""CANDIDATE CONTACT DETAILS TO USE IN RESUME HEADER:
+- Name: {cand_name or '[Candidate Name]'}
+- Location: {cand_loc or '[City, State / Remote]'}
+- Phone: {cand_phone or '[Phone Number]'}
+- Email: {cand_email or '[Email Address]'}
+- LinkedIn: {cand_li or '[LinkedIn Profile URL]'}
+
+HEADER FORMAT REQUIREMENT:
+You MUST start the full_markdown output with:
+# {cand_name or '[Candidate Name]'}
+{cand_loc or '[City, State / Remote]'} | {cand_phone or '[Phone Number]'} | {cand_email or '[Email Address]'} | {cand_li or '[LinkedIn Profile URL]'}
+"""
+
     if has_resume:
         resume_input = resume_text.strip()[:4000]
         resume_guidance = """STRICT FACT-PRESERVATION MANDATE:
@@ -223,7 +304,7 @@ def tailor_full_resume(jd_text: str, resume_text: str, track_code: str, scored_k
         resume_input = "(No candidate resume provided)"
         resume_guidance = """NO RESUME PROVIDED MANDATE:
 - The candidate did NOT provide their original resume text.
-- Use explicit brackets/placeholders for all personal metadata: e.g., '[Company Name]', '[Employment Dates]', '[University / Degree]', '[City, State / Remote]'.
+- Use candidate's specified contact details in header.
 - ABSOLUTELY NEVER invent real company names (such as the target hiring company in the JD or third-party corporations) or fake university names."""
 
     prompt = f"""You are an elite executive resume writer, ATS optimization specialist, and strict factual editor.
@@ -240,6 +321,8 @@ def tailor_full_resume(jd_text: str, resume_text: str, track_code: str, scored_k
 ## Keyword Signals
 Matched Keywords: {", ".join(matched[:12]) if matched else "None"}
 Top Missing Gaps: {", ".join(missed[:12]) if missed else "None"}
+
+{cand_contact_block}
 
 ## CRITICAL INSTRUCTIONS & RULES:
 {resume_guidance}
@@ -260,7 +343,7 @@ Respond ONLY with valid JSON (no markdown fences):
   "experience_highlights": [
     {{"role": "<Role Title>", "company": "<Actual Company from Candidate Resume or [Company Name]>", "bullets": ["<Bullet 1>", "<Bullet 2>", "<Bullet 3>"]}}
   ],
-  "full_markdown": "<Complete Full Markdown Resume with headers ## PROFESSIONAL SUMMARY, ## CORE COMPETENCIES, ## PROFESSIONAL EXPERIENCE, ## EDUCATION & CERTIFICATIONS>"
+  "full_markdown": "<Complete Full Markdown Resume starting with # {cand_name or '[Candidate Name]'} and headers ## PROFESSIONAL SUMMARY, ## CORE COMPETENCIES, ## PROFESSIONAL EXPERIENCE, ## EDUCATION & CERTIFICATIONS>"
 }}"""
 
     try:
@@ -280,6 +363,10 @@ Respond ONLY with valid JSON (no markdown fences):
         data = json.loads(raw)
         data["error"] = None
         data["model_used"] = model_used
+
+        if "full_markdown" in data and data["full_markdown"]:
+            data["full_markdown"] = inject_candidate_details(data["full_markdown"], candidate_info)
+
         return data
 
     except json.JSONDecodeError as e:
@@ -376,7 +463,7 @@ Respond ONLY with valid JSON (no markdown fences):
         return {"error": err_str}
 
 
-def generate_cover_letter(jd_text: str, resume_text: str, track_code: str) -> dict:
+def generate_cover_letter(jd_text: str, resume_text: str, track_code: str, candidate_info: dict = None) -> dict:
     """
     Generates a tailored 3-paragraph executive cover letter.
     """
@@ -387,6 +474,8 @@ def generate_cover_letter(jd_text: str, resume_text: str, track_code: str) -> di
     from excel_reader import TRACK_LABELS
     track_label = TRACK_LABELS.get(track_code, track_code)
     resume_input = resume_text.strip()[:3500] if resume_text.strip() else "(No candidate resume provided)"
+
+    cand_name = candidate_info.get('name', '').strip() if candidate_info else ''
 
     prompt = f"""You are an executive career strategist.
 
@@ -399,15 +488,18 @@ def generate_cover_letter(jd_text: str, resume_text: str, track_code: str) -> di
 ## Candidate Resume / Profile
 {resume_input}
 
+## Candidate Name
+{cand_name or '[Your Name]'}
+
 ## Task
 Generate a highly persuasive, 3-paragraph executive cover letter connecting candidate achievements directly to the job description requirements.
 
-Strict Rule: Preserve candidate's real company names if provided; if no resume provided, use placeholders like [Company Name].
+Strict Rule: Preserve candidate's real company names if provided; sign off with Sincerely, {cand_name or '[Your Name]'}.
 
 Respond ONLY with valid JSON:
 {{
   "job_title": "<target job title>",
-  "cover_letter_markdown": "<Formatted 3-paragraph cover letter starting with Dear Hiring Committee / Hiring Manager, ... ending with Sincerely, [Your Name]>"
+  "cover_letter_markdown": "<Formatted 3-paragraph cover letter starting with Dear Hiring Manager, ... ending with Sincerely,\\n\\n{cand_name or '[Your Name]'}>"
 }}"""
 
     try:
@@ -427,6 +519,10 @@ Respond ONLY with valid JSON:
         data = json.loads(raw)
         data["error"] = None
         data["model_used"] = model_used
+
+        if "cover_letter_markdown" in data and data["cover_letter_markdown"]:
+            data["cover_letter_markdown"] = inject_candidate_details(data["cover_letter_markdown"], candidate_info)
+
         return data
     except Exception as e:
         err_str = str(e)
