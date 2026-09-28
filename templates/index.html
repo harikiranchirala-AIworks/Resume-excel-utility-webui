@@ -16,9 +16,12 @@
           <h1>🎯 JD-to-Resume Matching Utility</h1>
           <p class="subtitle">Automated Job Description analysis across 4 professional tracks</p>
         </div>
-        <div>
-          <button class="tailor-action-btn" style="background:var(--surface2);border-color:var(--accent);color:var(--accent2);font-weight:700;padding:0.45rem 0.95rem" onclick="openHistoryModal()">
-            💾 Saved Applications (<span id="history-count">0</span>)
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+          <button class="tailor-action-btn" style="background:rgba(0,212,170,0.12);border-color:var(--accent2);color:var(--accent2);font-weight:700;padding:0.45rem 0.95rem" onclick="openCrmModal()">
+            💼 Kanban CRM (<span id="crm-count">0</span>)
+          </button>
+          <button class="tailor-action-btn" style="background:rgba(108,99,255,0.12);border-color:var(--accent);color:var(--accent);font-weight:700;padding:0.45rem 0.95rem" onclick="openBookmarkletModal()">
+            📥 One-Click Import
           </button>
         </div>
       </div>
@@ -63,6 +66,7 @@
           <div class="input-actions" style="margin-top:0.6rem">
             <button id="score-btn" onclick="submitJD()">⚡ Analyse JD</button>
             <button id="full-analysis-btn" class="full-btn" onclick="runFullAnalysis()">🌟 Full Analysis</button>
+            <button class="tailor-action-btn" style="background:rgba(0,212,170,0.15);color:var(--accent2);border-color:rgba(0,212,170,0.4);font-weight:700" onclick="saveCurrentAnalysisToCrm()">💼 Save to CRM</button>
             <button class="secondary" onclick="clearAll()">✕ Clear</button>
           </div>
           <p class="input-hint" style="margin-top:0.35rem">🌟 Full Analysis = score + AI-enhance all 4 tracks at once</p>
@@ -574,6 +578,102 @@
             <button type="submit" class="tailor-btn" id="batch-upload-submit-btn">🔁 Upload & Overwrite Selected</button>
           </div>
         </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── JOB APPLICATION KANBAN CRM MODAL ── -->
+  <div id="crm-modal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width:1150px;width:95%">
+      <div class="modal-header">
+        <div style="display:flex;align-items:center;gap:0.75rem">
+          <div class="modal-title">💼 Job Application CRM & Kanban Board</div>
+          <span id="crm-total-badge" style="background:rgba(0,212,170,0.15);color:var(--accent2);padding:0.2rem 0.6rem;border-radius:12px;font-size:0.78rem;font-weight:700">0 Tracked</span>
+        </div>
+        <button class="modal-close-btn" onclick="closeCrmModal()">&times;</button>
+      </div>
+      <div class="modal-body" style="padding-top:0.75rem">
+        <p style="font-size:0.83rem;color:var(--muted);margin-bottom:1rem">
+          Manage your targeted applications across stages. Drag or click status buttons to transition applications.
+        </p>
+        
+        <div class="kanban-board" id="kanban-board">
+          <!-- Column 1: SAVED -->
+          <div class="kanban-col" data-stage="SAVED">
+            <div class="kanban-col-header">
+              <span class="kanban-col-title">📋 Saved</span>
+              <span class="kanban-col-count" id="kcount-SAVED">0</span>
+            </div>
+            <div class="kanban-cards-container" id="kcards-SAVED"></div>
+          </div>
+
+          <!-- Column 2: APPLIED -->
+          <div class="kanban-col" data-stage="APPLIED">
+            <div class="kanban-col-header">
+              <span class="kanban-col-title">📨 Applied</span>
+              <span class="kanban-col-count" id="kcount-APPLIED">0</span>
+            </div>
+            <div class="kanban-cards-container" id="kcards-APPLIED"></div>
+          </div>
+
+          <!-- Column 3: INTERVIEWING -->
+          <div class="kanban-col" data-stage="INTERVIEWING">
+            <div class="kanban-col-header">
+              <span class="kanban-col-title">🗣️ Interviewing</span>
+              <span class="kanban-col-count" id="kcount-INTERVIEWING">0</span>
+            </div>
+            <div class="kanban-cards-container" id="kcards-INTERVIEWING"></div>
+          </div>
+
+          <!-- Column 4: OFFER -->
+          <div class="kanban-col" data-stage="OFFER">
+            <div class="kanban-col-header">
+              <span class="kanban-col-title">🎉 Offer</span>
+              <span class="kanban-col-count" id="kcount-OFFER">0</span>
+            </div>
+            <div class="kanban-cards-container" id="kcards-OFFER"></div>
+          </div>
+
+          <!-- Column 5: ARCHIVED -->
+          <div class="kanban-col" data-stage="ARCHIVED">
+            <div class="kanban-col-header">
+              <span class="kanban-col-title">📁 Archived</span>
+              <span class="kanban-col-count" id="kcount-ARCHIVED">0</span>
+            </div>
+            <div class="kanban-cards-container" id="kcards-ARCHIVED"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── BOOKMARKLET IMPORT MODAL ── -->
+  <div id="bookmarklet-modal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width:600px">
+      <div class="modal-header">
+        <div class="modal-title">📥 One-Click Browser Bookmarklet Import</div>
+        <button class="modal-close-btn" onclick="closeBookmarkletModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:0.88rem;color:var(--text);margin-bottom:0.75rem">
+          Import job postings from LinkedIn, Indeed, Glassdoor, or Workday in 1-click directly from your web browser!
+        </p>
+        
+        <div style="background:var(--surface2);border:1px dashed var(--accent);border-radius:8px;padding:1.25rem;text-align:center;margin:1rem 0">
+          <p style="font-size:0.8rem;color:var(--muted);margin-bottom:0.5rem">Drag this button to your browser's Bookmarks Bar:</p>
+          <a id="bookmarklet-link" href="#" class="full-btn" style="display:inline-block;text-decoration:none;padding:0.5rem 1.25rem;font-size:0.9rem" onclick="event.preventDefault(); alert('Drag this button to your Browser Bookmarks Bar!');">
+            📥 Import to Resume AI
+          </a>
+        </div>
+
+        <div style="font-size:0.83rem;color:var(--muted);line-height:1.6">
+          <strong>How to install:</strong>
+          <ol style="padding-left:1.2rem;margin-top:0.3rem">
+            <li>Ensure your Bookmarks Bar is visible in Chrome/Edge/Firefox (<kbd>Ctrl+Shift+B</kbd> or <kbd>Cmd+Shift+B</kbd>).</li>
+            <li>Drag the purple <strong>"📥 Import to Resume AI"</strong> button above directly onto your bookmarks bar.</li>
+            <li>When browsing any job posting on LinkedIn or Indeed, click the bookmarklet to send the JD text straight to your running utility!</li>
+          </ol>
+        </div>
       </div>
     </div>
   </div>

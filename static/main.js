@@ -1325,6 +1325,7 @@ function copyTailoredMd(tc) {
 document.addEventListener("DOMContentLoaded", () => {
   loadHistoryCount();
   loadMasterResumes();
+  loadCrmApplications();
 });
 
 function getCandidateInfo() {
@@ -2347,4 +2348,174 @@ async function downloadCoverLetterDocx() {
   } catch(e) {
     alert("Download failed: " + e.message);
   }
+}
+
+/* ═══════════════════════════ JOB HUNT CRM & KANBAN BOARD ═══════════════ */
+
+let crmApplications = [];
+
+async function loadCrmApplications() {
+  try {
+    const resp = await fetch("/api/crm/applications");
+    const data = await resp.json();
+    crmApplications = data.applications || [];
+    
+    const countEl = document.getElementById("crm-count");
+    if (countEl) countEl.textContent = crmApplications.length;
+    
+    const badgeEl = document.getElementById("crm-total-badge");
+    if (badgeEl) badgeEl.textContent = `${crmApplications.length} Tracked Application${crmApplications.length !== 1 ? 's' : ''}`;
+
+    renderKanbanBoard();
+  } catch (e) {
+    console.error("Failed to load CRM applications:", e);
+  }
+}
+
+function openCrmModal() {
+  document.getElementById("crm-modal")?.classList.remove("hidden");
+  loadCrmApplications();
+}
+
+function closeCrmModal() {
+  document.getElementById("crm-modal")?.classList.add("hidden");
+}
+
+function renderKanbanBoard() {
+  const stages = ["SAVED", "APPLIED", "INTERVIEWING", "OFFER", "ARCHIVED"];
+  
+  stages.forEach(stage => {
+    const container = document.getElementById(`kcards-${stage}`);
+    const countEl = document.getElementById(`kcount-${stage}`);
+    if (!container) return;
+
+    const filtered = crmApplications.filter(a => (a.status || "SAVED").toUpperCase() === stage);
+    if (countEl) countEl.textContent = filtered.length;
+
+    if (filtered.length === 0) {
+      container.innerHTML = `<div style="font-size:0.78rem;color:var(--muted);text-align:center;padding:1.5rem 0;border:1px dashed rgba(255,255,255,0.08);border-radius:6px">No applications in ${stage.toLowerCase()} stage</div>`;
+      return;
+    }
+
+    container.innerHTML = filtered.map(app => {
+      const otherStages = stages.filter(s => s !== stage);
+      return `
+        <div class="crm-card" id="crm-card-${app.id}">
+          <div class="crm-card-header">
+            <span class="crm-card-title">${escHtml(app.title)}</span>
+            <button style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.75rem" onclick="deleteCrmApp('${app.id}')" title="Delete">✕</button>
+          </div>
+          <div class="crm-card-company">🏢 ${escHtml(app.company)}</div>
+          <div class="crm-card-meta">
+            <span class="crm-badge" style="background:rgba(108,99,255,0.15);color:var(--accent)">${escHtml(app.track || 'AI')} Track</span>
+            ${app.salary && app.salary !== 'Not specified' ? `<span class="crm-badge" style="background:rgba(0,212,170,0.15);color:var(--accent2)">💰 ${escHtml(app.salary)}</span>` : ''}
+            <span class="crm-badge">${escHtml(app.work_mode || 'Hybrid')}</span>
+          </div>
+          ${app.applied_date ? `<div style="font-size:0.72rem;color:var(--muted);margin-bottom:0.35rem">📅 ${escHtml(app.applied_date)}</div>` : ''}
+          <div class="crm-card-actions">
+            ${otherStages.map(s => `
+              <button class="crm-stage-btn" onclick="moveCrmStage('${app.id}', '${s}')">➔ ${s.charAt(0) + s.slice(1).toLowerCase()}</button>
+            `).join('')}
+          </div>
+        </div>`;
+    }).join("");
+  });
+}
+
+async function moveCrmStage(appId, newStage) {
+  try {
+    const resp = await fetch(`/api/crm/applications/${appId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: newStage })
+    });
+    const data = await resp.json();
+    if (data.success) {
+      loadCrmApplications();
+    }
+  } catch (e) {
+    alert("Failed to update status: " + e.message);
+  }
+}
+
+async function deleteCrmApp(appId) {
+  if (!confirm("Are you sure you want to delete this tracked application?")) return;
+  try {
+    const resp = await fetch(`/api/crm/applications/${appId}`, { method: "DELETE" });
+    const data = await resp.json();
+    if (data.success) {
+      loadCrmApplications();
+    }
+  } catch (e) {
+    alert("Failed to delete application: " + e.message);
+  }
+}
+
+async function saveCurrentAnalysisToCrm() {
+  const jdText = getJdText();
+  if (!jdText) { alert("Please paste or fetch a Job Description first."); return; }
+
+  const track = currentData?.best_track || activeTab || "AI";
+  const salary = document.getElementById("sig-salary")?.textContent || "Not specified";
+  const workMode = document.getElementById("sig-workmode")?.textContent || "Hybrid";
+  
+  const lines = jdText.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+  const title = lines[0] ? lines[0].slice(0, 60) : "Target Role";
+
+  const appData = {
+    title: title,
+    company: "Target Employer",
+    track: track,
+    status: "SAVED",
+    salary: salary,
+    work_mode: workMode,
+    jd_text: jdText,
+    tailored_resume_md: window._tailoredResumes[track]?.full_markdown || ""
+  };
+
+  try {
+    const resp = await fetch("/api/crm/applications", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(appData)
+    });
+    const data = await resp.json();
+    if (data.success) {
+      alert(`✓ Saved "${title}" to your Kanban CRM!`);
+      loadCrmApplications();
+    }
+  } catch (e) {
+    alert("Failed to save application: " + e.message);
+  }
+}
+
+/* ═══════════════════════════ BOOKMARKLET IMPORT ═══════════════════════ */
+
+function openBookmarkletModal() {
+  document.getElementById("bookmarklet-modal")?.classList.remove("hidden");
+  initBookmarkletLink();
+}
+
+function closeBookmarkletModal() {
+  document.getElementById("bookmarklet-modal")?.classList.add("hidden");
+}
+
+function initBookmarkletLink() {
+  const link = document.getElementById("bookmarklet-link");
+  if (!link) return;
+  const host = window.location.origin;
+  const jsCode = `javascript:(function(){
+    var jdText = document.body.innerText.slice(0, 5000);
+    var title = document.title;
+    var jobUrl = window.location.href;
+    fetch('${host}/api/import_jd', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({jd_text: jdText, title: title, job_url: jobUrl})
+    }).then(r => r.json()).then(data => {
+      alert('✓ Job Description Imported! Opening Resume Utility...');
+      window.open('${host}', '_blank');
+    }).catch(e => alert('Error importing JD: ' + e.message));
+  })();`;
+  link.setAttribute("href", jsCode.replace(/\s+/g, " "));
 }

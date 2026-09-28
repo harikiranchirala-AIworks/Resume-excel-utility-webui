@@ -284,30 +284,83 @@ def download_docx():
     )
 
 
-# ── SESSION HISTORY ENDPOINTS ────────────────────────────────────────────────
-@app.route("/api/history", methods=["GET"])
-def get_history():
-    from history_manager import load_history_sessions
-    sessions = load_history_sessions()
-    return jsonify({"sessions": sessions})
+# ── JOB APPLICATION CRM (KANBAN BOARD) ENDPOINTS ─────────────────────────────
+@app.route("/api/crm/applications", methods=["GET"])
+def get_crm_applications():
+    from applications_crm import load_applications
+    apps = load_applications()
+    return jsonify({"applications": apps})
 
 
-@app.route("/api/history/save", methods=["POST"])
-def save_history():
-    data = request.get_json(force=True)
-    if not data or not data.get("jd_text"):
-        return jsonify({"error": "Job description is required to save session."}), 400
+@app.route("/api/crm/applications", methods=["POST"])
+def save_crm_application():
+    data = request.get_json(force=True) or {}
+    if not data.get("title") and not data.get("jd_text"):
+        return jsonify({"error": "Job title or JD text is required."}), 400
 
-    from history_manager import save_history_session
-    saved = save_history_session(data)
-    return jsonify({"success": True, "session": saved})
+    from applications_crm import save_application
+    saved = save_application(data)
+    return jsonify({"success": True, "application": saved})
 
 
-@app.route("/api/history/<session_id>", methods=["DELETE"])
-def delete_history(session_id):
-    from history_manager import delete_history_session
-    deleted = delete_history_session(session_id)
+@app.route("/api/crm/applications/<app_id>", methods=["PUT"])
+def update_crm_stage(app_id):
+    data = request.get_json(force=True) or {}
+    status = data.get("status")
+    if not status:
+        return jsonify({"error": "New status is required."}), 400
+
+    from applications_crm import update_application_status
+    updated = update_application_status(app_id, status)
+    if updated:
+        return jsonify({"success": True, "application": updated})
+    return jsonify({"error": "Application not found."}), 404
+
+
+@app.route("/api/crm/applications/<app_id>", methods=["DELETE"])
+def delete_crm_application_endpoint(app_id):
+    from applications_crm import delete_application
+    deleted = delete_application(app_id)
     return jsonify({"success": deleted})
+
+
+# ── ONE-CLICK BOOKMARKLET & BROWSER EXTENSION IMPORT ──────────────────────────
+@app.route("/api/import_jd", methods=["POST", "OPTIONS"])
+def import_jd():
+    if request.method == "OPTIONS":
+        res = jsonify({"status": "ok"})
+        res.headers.add("Access-Control-Allow-Origin", "*")
+        res.headers.add("Access-Control-Allow-Headers", "Content-Type")
+        res.headers.add("Access-Control-Allow-Methods", "POST, OPTIONS")
+        return res
+
+    data = request.get_json(force=True) or {}
+    jd_text = data.get("jd_text", "").strip()
+    title = data.get("title", "").strip()
+    company = data.get("company", "").strip()
+    job_url = data.get("job_url", "").strip()
+
+    if not jd_text:
+        res = jsonify({"error": "Job description text is empty."})
+        res.headers.add("Access-Control-Allow-Origin", "*")
+        return res, 400
+
+    # Score JD automatically
+    try:
+        scoring_result = score_jd(jd_text)
+    except Exception:
+        scoring_result = {}
+
+    res = jsonify({
+        "success": True,
+        "title": title,
+        "company": company,
+        "job_url": job_url,
+        "jd_text": jd_text,
+        "scoring": scoring_result
+    })
+    res.headers.add("Access-Control-Allow-Origin", "*")
+    return res
 
 
 # ── MASTER RESUMES (ONE-TIME PERSISTENT RESUMES) ENDPOINTS ───────────────────
