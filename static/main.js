@@ -1062,10 +1062,24 @@ async function runTailorResume(tc) {
   }
 }
 
+window._resumeStyleConfigs = window._resumeStyleConfigs || {};
+
+function getResumeStyleConfig(tc) {
+  if (!window._resumeStyleConfigs[tc]) {
+    window._resumeStyleConfigs[tc] = {
+      template: "modern",
+      accent: "#4f46e5",
+      font: "Calibri"
+    };
+  }
+  return window._resumeStyleConfigs[tc];
+}
+
 function renderTailoredResume(tc, data) {
   const resultEl = document.getElementById(`tailor-result-${tc}`);
   const md = data.full_markdown || "";
   const origResume = resumeTexts[tc] || "(No candidate resume uploaded for this track)";
+  const config = getResumeStyleConfig(tc);
 
   let html = `
     <div class="tailor-res-card">
@@ -1079,16 +1093,56 @@ function renderTailoredResume(tc, data) {
         </div>
       </div>
 
+      <!-- STYLE CUSTOMIZER BAR -->
+      <div class="style-customizer-bar">
+        <div class="customizer-group">
+          <span class="customizer-label">Template Preset:</span>
+          <select class="customizer-select" id="tpl-select-${tc}" onchange="onStyleConfigChange('${tc}')">
+            <option value="modern" ${config.template === "modern" ? "selected" : ""}>🎨 Modern Executive</option>
+            <option value="classic" ${config.template === "classic" ? "selected" : ""}>🏛️ Classic Corporate</option>
+            <option value="tech" ${config.template === "tech" ? "selected" : ""}>⚡ Tech Minimalist</option>
+          </select>
+        </div>
+
+        <div class="customizer-group">
+          <span class="customizer-label">Accent Color:</span>
+          <div class="color-swatch-group">
+            <button class="color-swatch ${config.accent === '#4f46e5' ? 'active' : ''}" style="background:#4f46e5" onclick="setSwatchColor('${tc}', '#4f46e5')"></button>
+            <button class="color-swatch ${config.accent === '#1e3a8a' ? 'active' : ''}" style="background:#1e3a8a" onclick="setSwatchColor('${tc}', '#1e3a8a')"></button>
+            <button class="color-swatch ${config.accent === '#059669' ? 'active' : ''}" style="background:#059669" onclick="setSwatchColor('${tc}', '#059669')"></button>
+            <button class="color-swatch ${config.accent === '#1f2937' ? 'active' : ''}" style="background:#1f2937" onclick="setSwatchColor('${tc}', '#1f2937')"></button>
+            <button class="color-swatch ${config.accent === '#991b1b' ? 'active' : ''}" style="background:#991b1b" onclick="setSwatchColor('${tc}', '#991b1b')"></button>
+          </div>
+        </div>
+
+        <div class="customizer-group">
+          <span class="customizer-label">Typography:</span>
+          <select class="customizer-select" id="font-select-${tc}" onchange="onStyleConfigChange('${tc}')">
+            <option value="Calibri" ${config.font === "Calibri" ? "selected" : ""}>Modern Sans (Calibri)</option>
+            <option value="Georgia" ${config.font === "Georgia" ? "selected" : ""}>Executive Serif (Georgia)</option>
+            <option value="Segoe UI" ${config.font === "Segoe UI" ? "selected" : ""}>Clean Tech (Segoe UI)</option>
+          </select>
+        </div>
+      </div>
+
       <div class="tailor-view-bar">
-        <button class="tailor-view-btn active" id="tv-btn-md-${tc}" onclick="switchTailorView('${tc}', 'md')">💻 Formatted Resume</button>
+        <button class="tailor-view-btn active" id="tv-btn-preview-${tc}" onclick="switchTailorView('${tc}', 'preview')">📄 Executive Paper Preview</button>
+        <button class="tailor-view-btn" id="tv-btn-md-${tc}" onclick="switchTailorView('${tc}', 'md')">💻 Raw Markdown</button>
         <button class="tailor-view-btn" id="tv-btn-split-${tc}" onclick="switchTailorView('${tc}', 'split')">⚔️ Side-by-Side View</button>
         <button class="tailor-view-btn" id="tv-btn-edit-${tc}" onclick="switchTailorView('${tc}', 'edit')">✏️ Edit & Customise</button>
       </div>
 
-      <!-- View 1: Formatted Resume Box -->
-      <div id="tv-box-md-${tc}" class="tailor-md-box">${escHtml(md)}</div>
+      <!-- View 1: Executive Paper Preview -->
+      <div id="tv-box-preview-${tc}" class="tailor-preview-wrap">
+        <div id="paper-sheet-${tc}" class="resume-paper-container tpl-${config.template}">
+          ${renderStyledResumeHtml(md, config)}
+        </div>
+      </div>
 
-      <!-- View 2: Side-by-Side Comparison -->
+      <!-- View 2: Raw Markdown Box -->
+      <div id="tv-box-md-${tc}" class="tailor-md-box hidden">${escHtml(md)}</div>
+
+      <!-- View 3: Side-by-Side Comparison -->
       <div id="tv-box-split-${tc}" class="tailor-split-grid hidden">
         <div class="tailor-split-col">
           <div class="tailor-col-title">📄 Original Candidate Resume</div>
@@ -1100,9 +1154,9 @@ function renderTailoredResume(tc, data) {
         </div>
       </div>
 
-      <!-- View 3: Live Editable Textarea -->
+      <!-- View 4: Live Editable Textarea -->
       <div id="tv-box-edit-${tc}" class="hidden">
-        <p style="font-size:0.82rem;color:var(--muted);margin-bottom:0.5rem">💡 Tip: Any edits you make here will be saved live and included when you click "Download Word (.docx)" or "Copy Markdown".</p>
+        <p style="font-size:0.82rem;color:var(--muted);margin-bottom:0.5rem">💡 Tip: Any edits you make here will update the live paper preview and be included when downloading Word (.docx) or PDF.</p>
         <textarea id="tv-textarea-${tc}" class="tailor-edit-textarea" oninput="onTailorEdit('${tc}')">${escHtml(md)}</textarea>
       </div>
     </div>`;
@@ -1111,10 +1165,88 @@ function renderTailoredResume(tc, data) {
   resultEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
+function renderStyledResumeHtml(markdown, config) {
+  if (!markdown) return "";
+  const lines = markdown.splitlines ? markdown.splitlines() : markdown.split("\n");
+  let html = "";
+  let inList = false;
+
+  const fontStyle = `font-family: '${config.font}', system-ui, sans-serif;`;
+  const accentColor = config.accent || "#4f46e5";
+
+  for (let idx = 0; idx < lines.length; idx++) {
+    const line = lines[idx].trim();
+    if (!line) continue;
+
+    if (line.startswith ? line.startswith("# ") : line.indexOf("# ") === 0) {
+      if (inList) { html += "</ul>"; inList = false; }
+      html += `<h1 style="${fontStyle} color:${accentColor}">${escHtml(line.slice(2))}</h1>`;
+    }
+    else if (line.startswith ? line.startswith("## ") : line.indexOf("## ") === 0) {
+      if (inList) { html += "</ul>"; inList = false; }
+      html += `<h2 style="${fontStyle} color:${accentColor}">${escHtml(line.slice(3))}</h2>`;
+    }
+    else if (line.startswith ? line.startswith("### ") : line.indexOf("### ") === 0) {
+      if (inList) { html += "</ul>"; inList = false; }
+      html += `<h3 style="${fontStyle}">${escHtml(line.slice(4))}</h3>`;
+    }
+    else if ((line.indexOf("- ") === 0) || (line.indexOf("* ") === 0)) {
+      if (!inList) { html += "<ul>"; inList = true; }
+      let bulletContent = escHtml(line.slice(2));
+      // Process bold markdown **text**
+      bulletContent = bulletContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      html += `<li style="${fontStyle}">${bulletContent}</li>`;
+    }
+    else {
+      if (inList) { html += "</ul>"; inList = false; }
+      if (line.includes("|") && idx < 4) {
+        html += `<div class="header-contact" style="${fontStyle}">${escHtml(line)}</div>`;
+      } else {
+        html += `<p style="${fontStyle}">${escHtml(line)}</p>`;
+      }
+    }
+  }
+  if (inList) { html += "</ul>"; }
+  return html;
+}
+
+function setSwatchColor(tc, color) {
+  const config = getResumeStyleConfig(tc);
+  config.accent = color;
+  const card = document.querySelector(`.tailor-res-card`);
+  if (card) {
+    card.querySelectorAll(`.color-swatch`).forEach(sw => {
+      sw.classList.toggle("active", sw.style.backgroundColor === color || sw.getAttribute("style").includes(color));
+    });
+  }
+  updatePaperSheet(tc);
+}
+
+function onStyleConfigChange(tc) {
+  const config = getResumeStyleConfig(tc);
+  const tplSelect = document.getElementById(`tpl-select-${tc}`);
+  const fontSelect = document.getElementById(`font-select-${tc}`);
+  if (tplSelect) config.template = tplSelect.value;
+  if (fontSelect) config.font = fontSelect.value;
+  updatePaperSheet(tc);
+}
+
+function updatePaperSheet(tc) {
+  const sheet = document.getElementById(`paper-sheet-${tc}`);
+  if (!sheet) return;
+  const config = getResumeStyleConfig(tc);
+  const data = window._tailoredResumes[tc];
+  const md = data ? data.full_markdown : "";
+
+  sheet.className = `resume-paper-container tpl-${config.template}`;
+  sheet.innerHTML = renderStyledResumeHtml(md, config);
+}
+
 function switchTailorView(tc, mode) {
   document.querySelectorAll(`.tailor-view-btn[id^="tv-btn-"][id$="-${tc}"]`).forEach(b => b.classList.remove("active"));
   document.getElementById(`tv-btn-${mode}-${tc}`)?.classList.add("active");
 
+  document.getElementById(`tv-box-preview-${tc}`)?.classList.toggle("hidden", mode !== "preview");
   document.getElementById(`tv-box-md-${tc}`)?.classList.toggle("hidden", mode !== "md");
   document.getElementById(`tv-box-split-${tc}`)?.classList.toggle("hidden", mode !== "split");
   document.getElementById(`tv-box-edit-${tc}`)?.classList.toggle("hidden", mode !== "edit");
@@ -1129,18 +1261,26 @@ function onTailorEdit(tc) {
   }
   const boxMd = document.getElementById(`tv-box-md-${tc}`);
   if (boxMd) boxMd.textContent = newMd;
+  updatePaperSheet(tc);
 }
 
 async function downloadDocxFile(tc) {
   const data = window._tailoredResumes[tc];
   if (!data || !data.full_markdown) return;
+  const config = getResumeStyleConfig(tc);
 
   const filename = `${tc}_Tailored_Resume.docx`;
   try {
     const resp = await fetch("/download_docx", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ markdown_text: data.full_markdown, filename: filename }),
+      body: JSON.stringify({
+        markdown_text: data.full_markdown,
+        filename: filename,
+        template_style: config.template,
+        accent_color: config.accent,
+        font_family: config.font
+      }),
     });
     const blob = await resp.blob();
     const url = window.URL.createObjectURL(blob);

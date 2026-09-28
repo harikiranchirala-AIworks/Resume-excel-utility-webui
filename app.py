@@ -162,25 +162,115 @@ def tailor_resume():
 def download_docx():
     from io import BytesIO
     from docx import Document
+    from docx.shared import Inches, Pt, RGBColor
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from docx.enum.style import WD_STYLE_TYPE
     from flask import send_file
 
     data = request.get_json(force=True)
     markdown_text = data.get("markdown_text", "").strip()
     filename = data.get("filename", "Tailored_Resume.docx")
+    template_style = data.get("template_style", "modern").lower()
+    accent_hex = data.get("accent_color", "#4f46e5").lstrip("#")
+    font_name = data.get("font_family", "Calibri")
+
+    try:
+        r = int(accent_hex[0:2], 16)
+        g = int(accent_hex[2:4], 16)
+        b = int(accent_hex[4:6], 16)
+        accent_color = RGBColor(r, g, b)
+    except Exception:
+        accent_color = RGBColor(79, 70, 229)
 
     doc = Document()
-    for line in markdown_text.splitlines():
+
+    # Set document margins
+    for section in doc.sections:
+        section.top_margin = Inches(0.6)
+        section.bottom_margin = Inches(0.6)
+        section.left_margin = Inches(0.65)
+        section.right_margin = Inches(0.65)
+
+    # Set base font style
+    normal_style = doc.styles['Normal']
+    normal_style.font.name = font_name
+    normal_style.font.size = Pt(10)
+    normal_style.font.color.rgb = RGBColor(30, 41, 59)
+
+    lines = markdown_text.splitlines()
+    for idx, line in enumerate(lines):
         line_str = line.strip()
+        if not line_str:
+            continue
+
         if line_str.startswith("# "):
-            doc.add_heading(line_str[2:], level=1)
+            p = doc.add_paragraph()
+            if template_style == "classic":
+                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = p.add_run(line_str[2:])
+            run.font.name = font_name
+            run.font.size = Pt(20 if template_style != "compact" else 18)
+            run.font.bold = True
+            run.font.color.rgb = accent_color
+            p.paragraph_format.space_before = Pt(4)
+            p.paragraph_format.space_after = Pt(2)
+
         elif line_str.startswith("## "):
-            doc.add_heading(line_str[3:], level=2)
+            p = doc.add_paragraph()
+            run = p.add_run(line_str[3:].upper())
+            run.font.name = font_name
+            run.font.size = Pt(12)
+            run.font.bold = True
+            run.font.color.rgb = accent_color
+            p.paragraph_format.space_before = Pt(12)
+            p.paragraph_format.space_after = Pt(4)
+
         elif line_str.startswith("### "):
-            doc.add_heading(line_str[4:], level=3)
+            p = doc.add_paragraph()
+            run = p.add_run(line_str[4:])
+            run.font.name = font_name
+            run.font.size = Pt(10.5)
+            run.font.bold = True
+            run.font.color.rgb = RGBColor(51, 65, 85)
+            p.paragraph_format.space_before = Pt(6)
+            p.paragraph_format.space_after = Pt(2)
+
         elif line_str.startswith("- ") or line_str.startswith("* "):
-            doc.add_paragraph(line_str[2:], style='List Bullet')
-        elif line_str:
-            doc.add_paragraph(line_str)
+            p = doc.add_paragraph(style='List Bullet')
+            # Check for bold inline text (e.g. **Title**: text)
+            bullet_text = line_str[2:]
+            if "**" in bullet_text:
+                parts = bullet_text.split("**")
+                for i, part in enumerate(parts):
+                    if not part:
+                        continue
+                    r = p.add_run(part)
+                    r.font.name = font_name
+                    r.font.size = Pt(9.5)
+                    if i % 2 == 1:
+                        r.font.bold = True
+            else:
+                r = p.add_run(bullet_text)
+                r.font.name = font_name
+                r.font.size = Pt(9.5)
+            p.paragraph_format.space_after = Pt(2)
+
+        else:
+            p = doc.add_paragraph()
+            # If line is candidate header contact details line (contains | )
+            if "|" in line_str and idx < 4:
+                if template_style == "classic":
+                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                r = p.add_run(line_str)
+                r.font.name = font_name
+                r.font.size = Pt(9.5)
+                r.font.color.rgb = RGBColor(100, 116, 139)
+                p.paragraph_format.space_after = Pt(10)
+            else:
+                r = p.add_run(line_str)
+                r.font.name = font_name
+                r.font.size = Pt(10)
+                p.paragraph_format.space_after = Pt(4)
 
     target = BytesIO()
     doc.save(target)

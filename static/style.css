@@ -1272,6 +1272,220 @@ mark.jd-kw-highlight.tier-1 {
   border-color: var(--accent2);
 }
 
+/* ── EXECUTIVE TEMPLATE STYLES & PAPER PREVIEW ── */
+
+.style-customizer-bar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.customizer-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.customizer-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.customizer-select, .customizer-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.customizer-select:focus, .customizer-btn:hover {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.color-swatch-group {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.color-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.color-swatch:hover {
+  transform: scale(1.15);
+}
+
+.color-swatch.active {
+  border-color: #ffffff;
+  box-shadow: 0 0 6px rgba(255,255,255,0.6);
+}
+
+/* Paper Sheet Layout */
+.resume-paper-container {
+  background: #ffffff;
+  color: #1e293b;
+  border-radius: 8px;
+  padding: 2.2rem 2.5rem;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.45);
+  font-family: 'Calibri', 'Inter', system-ui, sans-serif;
+  line-height: 1.5;
+  transition: all 0.3s ease;
+  min-height: 800px;
+}
+
+/* Template 1: Modern Executive */
+.tpl-modern h1 {
+  font-size: 1.85rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+  letter-spacing: -0.5px;
+}
+.tpl-modern .header-contact {
+  font-size: 0.88rem;
+  color: #64748b;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+.tpl-modern h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.2rem;
+  border-bottom: 2px solid currentColor;
+}
+.tpl-modern h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-top: 0.75rem;
+  margin-bottom: 0.25rem;
+  color: #334155;
+}
+.tpl-modern ul {
+  padding-left: 1.2rem;
+  margin-bottom: 0.6rem;
+}
+.tpl-modern li {
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+  color: #334155;
+}
+
+/* Template 2: Classic Corporate */
+.tpl-classic {
+  font-family: 'Georgia', 'Times New Roman', serif;
+}
+.tpl-classic h1 {
+  font-size: 2rem;
+  text-align: center;
+  font-weight: 700;
+  margin-bottom: 0.2rem;
+}
+.tpl-classic .header-contact {
+  text-align: center;
+  font-size: 0.88rem;
+  color: #475569;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #cbd5e1;
+}
+.tpl-classic h2 {
+  font-size: 1.05rem;
+  text-align: center;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  margin-top: 1.35rem;
+  margin-bottom: 0.6rem;
+  border-top: 1px solid #cbd5e1;
+  border-bottom: 1px solid #cbd5e1;
+  padding: 0.25rem 0;
+}
+.tpl-classic li {
+  font-size: 0.9rem;
+  margin-bottom: 0.3rem;
+  color: #1e293b;
+}
+
+/* Template 3: Tech Minimalist */
+.tpl-tech {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}
+.tpl-tech h1 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  margin-bottom: 0.15rem;
+}
+.tpl-tech .header-contact {
+  font-size: 0.85rem;
+  color: #475569;
+  margin-bottom: 1rem;
+  background: #f8fafc;
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+}
+.tpl-tech h2 {
+  font-size: 1rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 1.1rem;
+  margin-bottom: 0.4rem;
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  background: rgba(0,0,0,0.05);
+  border-radius: 4px;
+}
+.tpl-tech li {
+  font-size: 0.88rem;
+  margin-bottom: 0.2rem;
+}
+
+/* Print Optimization Styles */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .resume-paper-container, .resume-paper-container * {
+    visibility: visible;
+  }
+  .resume-paper-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0.5in 0.6in;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+}
+
 
 
 
