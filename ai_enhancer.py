@@ -31,18 +31,27 @@ MODEL_FALLBACK_CHAIN = [
 ]
 
 
-def call_gemini_with_fallback(client, prompt: str, temperature: float = 0.4) -> tuple[str, str]:
+def call_gemini_with_fallback(client, prompt: str, temperature: float = 0.4, preferred_model: str = None) -> tuple[str, str]:
     """
     Attempts to generate content using a robust multi-model fallback chain of Gemini AI models.
-    Tries each model in order, with automatic retry per model on 429/503/RESOURCE_EXHAUSTED errors.
+    Prioritizes preferred_model if specified by user, then falls back through the chain.
     Returns (raw_text_response, model_name_used).
     """
     import time
     from google.genai import types
 
     last_error = None
+    chain = list(MODEL_FALLBACK_CHAIN)
 
-    for model_name in MODEL_FALLBACK_CHAIN:
+    if preferred_model:
+        pref = str(preferred_model).strip()
+        if not pref.startswith("models/"):
+            pref = f"models/{pref}"
+        if pref in chain:
+            chain.remove(pref)
+        chain.insert(0, pref)
+
+    for model_name in chain:
         for attempt, wait in enumerate([0, 1.5]):
             if wait:
                 time.sleep(wait)
@@ -634,4 +643,60 @@ def audit_ats_readiness(jd_text: str, resume_text: str, track_code: str, scored_
         "has_power_verbs": has_power_verbs,
         "fix_checklist": fix_checklist
     }
+
+
+def generate_single_keyword_bullet(keyword: str, track_code: str, jd_text: str, resume_text: str, candidate_info: dict = None, preferred_model: str = None) -> dict:
+    """
+    Generates a single, high-impact achievement bullet point incorporating a missing keyword gap.
+    """
+    api_key = get_api_key()
+    if not api_key:
+        return {"error": "NO_API_KEY"}
+
+    from excel_reader import TRACK_LABELS
+    track_label = TRACK_LABELS.get(track_code, track_code)
+    resume_input = resume_text.strip()[:2500] if resume_text.strip() else "(No candidate resume provided)"
+
+    prompt = f"""You are an executive resume editor.
+
+Target Role Track: {track_label}
+Missing Keyword to Inject: {keyword}
+
+Candidate Resume / Profile:
+{resume_input}
+
+Task:
+Generate a single, high-impact executive bullet point that incorporates the missing keyword "{keyword}" into candidate's relevant background with quantified impact.
+
+Strict Rules:
+- Must start with a bullet character: "• "
+- Must contain the keyword "{keyword}" (or close variant).
+- Keep factual consistency with candidate history.
+
+Respond ONLY with valid JSON:
+{{
+  "keyword": "{keyword}",
+  "bullet": "• <High-impact bullet point containing {keyword} with quantified business metrics>"
+}}"""
+
+    try:
+        import warnings
+        from google import genai
+        warnings.filterwarnings("ignore", category=UserWarning)
+        client = genai.Client(api_key=api_key)
+
+        raw, model_used = call_gemini_with_fallback(client, prompt, temperature=0.3, preferred_model=preferred_model)
+
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1]
+            if raw.endswith("```"):
+                raw = raw.rsplit("```", 1)[0]
+        raw = raw.strip()
+
+        data = json.loads(raw)
+        data["error"] = None
+        data["model_used"] = model_used
+        return data
+    except Exception as e:
+        return {"error": str(e)}
 

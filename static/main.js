@@ -510,7 +510,11 @@ function renderAiResult(data) {
   }
   if (gap_keywords && gap_keywords.length) {
     html += `<div class="ai-result-label">Top Missing Keywords</div>
-             <div class="gap-pills">${gap_keywords.map(k => `<span class="gap-pill">✗ ${escHtml(k)}</span>`).join("")}</div>`;
+             <div class="gap-pills">${gap_keywords.map(k => `
+               <span class="gap-pill">
+                 ✗ ${escHtml(k)}
+                 <button class="gap-inject-btn" onclick="injectKeywordBullet('${escHtml(k)}', '${track_code}')" title="Generate bullet and insert into tailored resume">➕ Inject</button>
+               </span>`).join("")}</div>`;
   }
   if (suggested_bullets && suggested_bullets.length) {
     html += `<div class="ai-result-label">AI-Generated Resume Bullets</div>`;
@@ -2518,4 +2522,151 @@ function initBookmarkletLink() {
     }).catch(e => alert('Error importing JD: ' + e.message));
   })();`;
   link.setAttribute("href", jsCode.replace(/\s+/g, " "));
+}
+
+/* ═══════════════════════════ MULTI-MODEL AI SANDBOX ═══════════════════ */
+
+function getSelectedAiModel() {
+  const sel = document.getElementById("ai-model-select");
+  return sel ? sel.value : "gemini-3.6-flash";
+}
+
+function onAiModelChange() {
+  const model = getSelectedAiModel();
+  localStorage.setItem("preferred_ai_model", model);
+}
+
+/* ═══════════════════════════ INTERACTIVE GAP BULLET INJECTOR ═══════════ */
+
+async function injectKeywordBullet(keyword, tc) {
+  const jdText = getJdText();
+  if (!jdText) { alert("Please analyse a JD first."); return; }
+
+  const preferredModel = getSelectedAiModel();
+  const trackCode = tc || activeTab || "AI";
+
+  const btn = event?.target;
+  const origText = btn ? btn.innerHTML : "➕ Inject";
+  if (btn) { btn.disabled = true; btn.textContent = "⏳ Generating…"; }
+
+  try {
+    const resp = await fetch("/inject_keyword_bullet", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        keyword: keyword,
+        track: trackCode,
+        jd_text: jdText,
+        resume_text: getEffectiveResumeText(trackCode),
+        candidate_info: getCandidateInfo(),
+        preferred_model: preferredModel
+      })
+    });
+    const data = await resp.json();
+
+    if (data.error) {
+      alert("Error generating bullet: " + data.error);
+      return;
+    }
+
+    const newBullet = data.bullet;
+    if (!newBullet) return;
+
+    if (!window._tailoredResumes[trackCode]) {
+      window._tailoredResumes[trackCode] = { full_markdown: "" };
+    }
+
+    let currentMd = window._tailoredResumes[trackCode].full_markdown || "";
+    if (!currentMd) {
+      currentMd = `# Candidate Name\nCity, State | Phone | Email\n\n## PROFESSIONAL EXPERIENCE\n${newBullet}`;
+    } else {
+      if (currentMd.includes("## PROFESSIONAL EXPERIENCE")) {
+        currentMd = currentMd.replace("## PROFESSIONAL EXPERIENCE", `## PROFESSIONAL EXPERIENCE\n${newBullet}`);
+      } else {
+        currentMd += `\n\n${newBullet}`;
+      }
+    }
+
+    window._tailoredResumes[trackCode].full_markdown = currentMd;
+
+    const textarea = document.getElementById(`tv-textarea-${trackCode}`);
+    if (textarea) textarea.value = currentMd;
+    const boxMd = document.getElementById(`tv-box-md-${trackCode}`);
+    if (boxMd) boxMd.textContent = currentMd;
+
+    updatePaperSheet(trackCode);
+
+    if (btn) {
+      btn.innerHTML = "✅ Injected!";
+      setTimeout(() => { btn.innerHTML = origText; btn.disabled = false; }, 2000);
+    }
+
+    alert(`✓ Injected bullet for "${keyword}" into ${trackCode} tailored resume!`);
+
+  } catch (e) {
+    alert("Request failed: " + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = origText; }
+  }
+}
+
+/* ═══════════════════════════ SKILL HEATMAP & ANALYTICS ═══════════════ */
+
+function openSkillHeatmapModal() {
+  document.getElementById("skill-heatmap-modal")?.classList.remove("hidden");
+  loadSkillHeatmapAnalytics();
+}
+
+function closeSkillHeatmapModal() {
+  document.getElementById("skill-heatmap-modal")?.classList.add("hidden");
+}
+
+async function loadSkillHeatmapAnalytics() {
+  try {
+    const resp = await fetch("/api/analytics/skill_heatmap");
+    const data = await resp.json();
+
+    const badge = document.getElementById("sh-total-badge");
+    if (badge) badge.textContent = `${data.total_jds_analyzed || 0} JDs Analyzed`;
+
+    if (document.getElementById("sh-f-saved")) document.getElementById("sh-f-saved").textContent = data.crm_funnel?.saved || 0;
+    if (document.getElementById("sh-f-applied")) document.getElementById("sh-f-applied").textContent = data.crm_funnel?.applied || 0;
+    if (document.getElementById("sh-f-interviewing")) document.getElementById("sh-f-interviewing").textContent = data.crm_funnel?.interviewing || 0;
+
+    const skillsListEl = document.getElementById("sh-top-skills-list");
+    if (skillsListEl && data.top_demanded_skills) {
+      skillsListEl.innerHTML = data.top_demanded_skills.map(s => `
+        <span class="gap-pill" style="background:${s.is_covered ? 'rgba(0,212,170,0.15)' : 'rgba(255,107,107,0.15)'};color:${s.is_covered ? 'var(--accent2)' : 'var(--danger)'};border-color:${s.is_covered ? 'rgba(0,212,170,0.3)' : 'rgba(255,107,107,0.3)'}">
+          ${s.is_covered ? '✅' : '⚠️'} ${escHtml(s.keyword)} (${s.demand_pct}%)
+        </span>`).join("");
+    }
+
+    const tableWrap = document.getElementById("sh-skills-table-wrap");
+    if (tableWrap && data.top_demanded_skills) {
+      let tableHtml = `
+        <table class="kw-table" style="width:100%">
+          <thead>
+            <tr>
+              <th>Skill / Keyword</th>
+              <th>Demand Count</th>
+              <th>JD Demand %</th>
+              <th>Master Resume Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.top_demanded_skills.map(s => `
+              <tr>
+                <td><strong>${escHtml(s.keyword)}</strong></td>
+                <td>${s.demand_count} JDs</td>
+                <td><div style="background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden;height:14px;width:120px;display:inline-block;vertical-align:middle"><div style="background:var(--accent);height:100%;width:${s.demand_pct}%"></div></div> ${s.demand_pct}%</td>
+                <td><span class="badge-level ${s.is_covered ? 'badge-strong' : 'badge-weak'}">${s.is_covered ? '✅ Covered in Master' : '⚠️ Skill Gap'}</span></td>
+              </tr>`).join("")}
+          </tbody>
+        </table>`;
+      tableWrap.innerHTML = tableHtml;
+    }
+
+  } catch (e) {
+    console.error("Failed to load skill heatmap analytics:", e);
+  }
 }

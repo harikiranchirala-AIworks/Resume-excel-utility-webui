@@ -16,7 +16,15 @@
           <h1>🎯 JD-to-Resume Matching Utility</h1>
           <p class="subtitle">Automated Job Description analysis across 4 professional tracks</p>
         </div>
-        <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
+          <select id="ai-model-select" class="customizer-select" style="padding:0.4rem 0.75rem;font-weight:600;background:var(--surface2);border-color:var(--accent)" onchange="onAiModelChange()">
+            <option value="gemini-3.6-flash">⚡ Gemini 3.6 Flash (Fast)</option>
+            <option value="gemini-3.6-pro">🧠 Gemini 3.6 Pro (Deep Reasoning)</option>
+            <option value="gemini-3.5-flash-lite">🚀 Gemini 3.5 Flash-Lite</option>
+          </select>
+          <button class="tailor-action-btn" style="background:rgba(255,169,77,0.12);border-color:var(--warn);color:var(--warn);font-weight:700;padding:0.45rem 0.95rem" onclick="openSkillHeatmapModal()">
+            📊 Skill Heatmap
+          </button>
           <button class="tailor-action-btn" style="background:rgba(0,212,170,0.12);border-color:var(--accent2);color:var(--accent2);font-weight:700;padding:0.45rem 0.95rem" onclick="openCrmModal()">
             💼 Kanban CRM (<span id="crm-count">0</span>)
           </button>
@@ -673,6 +681,54 @@
             <li>Drag the purple <strong>"📥 Import to Resume AI"</strong> button above directly onto your bookmarks bar.</li>
             <li>When browsing any job posting on LinkedIn or Indeed, click the bookmarklet to send the JD text straight to your running utility!</li>
           </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SKILL FREQUENCY HEATMAP & CAREER ANALYTICS MODAL ── -->
+  <div id="skill-heatmap-modal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width:900px;width:95%">
+      <div class="modal-header">
+        <div style="display:flex;align-items:center;gap:0.75rem">
+          <div class="modal-title">📊 Skill Frequency Heatmap & Career Analytics</div>
+          <span id="sh-total-badge" style="background:rgba(255,169,77,0.15);color:var(--warn);padding:0.2rem 0.6rem;border-radius:12px;font-size:0.78rem;font-weight:700">0 JDs Analyzed</span>
+        </div>
+        <button class="modal-close-btn" onclick="closeSkillHeatmapModal()">&times;</button>
+      </div>
+      <div class="modal-body" style="padding-top:0.75rem">
+        <p style="font-size:0.85rem;color:var(--muted);margin-bottom:1rem">
+          Aggregated demand frequency for skills across all target JDs vs your candidate master resume coverage.
+        </p>
+        
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(250px, 1fr));gap:1rem;margin-bottom:1.25rem">
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:1rem">
+            <div style="font-size:0.8rem;color:var(--muted);font-weight:600">Top Demanded Skills</div>
+            <div id="sh-top-skills-list" style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.6rem"></div>
+          </div>
+
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:1rem">
+            <div style="font-size:0.8rem;color:var(--muted);font-weight:600;margin-bottom:0.5rem">CRM Pipeline Summary</div>
+            <div id="sh-funnel-summary" style="display:grid;grid-template-columns:repeat(3, 1fr);gap:0.5rem;text-align:center">
+              <div style="background:var(--surface);padding:0.5rem;border-radius:6px">
+                <div style="font-size:0.72rem;color:var(--muted)">Saved</div>
+                <div style="font-size:1.1rem;font-weight:700;color:var(--text)" id="sh-f-saved">0</div>
+              </div>
+              <div style="background:var(--surface);padding:0.5rem;border-radius:6px">
+                <div style="font-size:0.72rem;color:var(--muted)">Applied</div>
+                <div style="font-size:1.1rem;font-weight:700;color:var(--accent)" id="sh-f-applied">0</div>
+              </div>
+              <div style="background:var(--surface);padding:0.5rem;border-radius:6px">
+                <div style="font-size:0.72rem;color:var(--muted)">Interviewing</div>
+                <div style="font-size:1.1rem;font-weight:700;color:var(--accent2)" id="sh-f-interviewing">0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:1rem">
+          <div style="font-size:0.85rem;color:var(--text);font-weight:700;margin-bottom:0.75rem">📈 Skill Demand Frequency Breakdown</div>
+          <div id="sh-skills-table-wrap"></div>
         </div>
       </div>
     </div>

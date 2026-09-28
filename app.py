@@ -141,6 +141,7 @@ def tailor_resume():
     resume_text = data.get("resume_text", "").strip()
     track_code = data.get("track", "AI").strip().upper()
     candidate_info = data.get("candidate_info", {})
+    preferred_model = data.get("preferred_model")
 
     if not jd_text:
         return jsonify({"error": "Job description is required."}), 400
@@ -154,6 +155,24 @@ def tailor_resume():
 
     from ai_enhancer import tailor_full_resume
     result = tailor_full_resume(jd_text, resume_text, track_code, scored_kws, candidate_info)
+    return jsonify(result)
+
+
+@app.route("/inject_keyword_bullet", methods=["POST"])
+def inject_keyword_bullet():
+    data = request.get_json(force=True) or {}
+    keyword = data.get("keyword", "").strip()
+    track_code = data.get("track", "AI").strip().upper()
+    jd_text = data.get("jd_text", "").strip()
+    resume_text = data.get("resume_text", "").strip()
+    candidate_info = data.get("candidate_info", {})
+    preferred_model = data.get("preferred_model")
+
+    if not keyword:
+        return jsonify({"error": "Keyword parameter is required."}), 400
+
+    from ai_enhancer import generate_single_keyword_bullet
+    result = generate_single_keyword_bullet(keyword, track_code, jd_text, resume_text, candidate_info, preferred_model)
     return jsonify(result)
 
 
@@ -322,6 +341,14 @@ def delete_crm_application_endpoint(app_id):
     from applications_crm import delete_application
     deleted = delete_application(app_id)
     return jsonify({"success": deleted})
+
+
+# ── SKILL FREQUENCY HEATMAP & CAREER ANALYTICS ENDPOINT ──────────────────────
+@app.route("/api/analytics/skill_heatmap", methods=["GET"])
+def skill_heatmap_analytics():
+    from analytics_manager import get_skill_heatmap_analytics
+    data = get_skill_heatmap_analytics()
+    return jsonify(data)
 
 
 # ── ONE-CLICK BOOKMARKLET & BROWSER EXTENSION IMPORT ──────────────────────────
