@@ -185,16 +185,17 @@ def download_docx():
     doc = Document()
 
     # Set document margins
+    margin_val = 0.4 if template_style == "compact" else 0.6
     for section in doc.sections:
-        section.top_margin = Inches(0.6)
-        section.bottom_margin = Inches(0.6)
-        section.left_margin = Inches(0.65)
-        section.right_margin = Inches(0.65)
+        section.top_margin = Inches(margin_val)
+        section.bottom_margin = Inches(margin_val)
+        section.left_margin = Inches(margin_val + 0.05)
+        section.right_margin = Inches(margin_val + 0.05)
 
     # Set base font style
     normal_style = doc.styles['Normal']
     normal_style.font.name = font_name
-    normal_style.font.size = Pt(10)
+    normal_style.font.size = Pt(9 if template_style == "compact" else 10)
     normal_style.font.color.rgb = RGBColor(30, 41, 59)
 
     lines = markdown_text.splitlines()

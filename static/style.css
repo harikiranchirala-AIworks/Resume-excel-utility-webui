@@ -1431,38 +1431,78 @@ mark.jd-kw-highlight.tier-1 {
   color: #1e293b;
 }
 
-/* Template 3: Tech Minimalist */
-.tpl-tech {
-  font-family: 'Segoe UI', system-ui, sans-serif;
+/* Template 4: Two-Column Sleek */
+.tpl-twocol-grid {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 1.5rem;
 }
-.tpl-tech h1 {
-  font-size: 1.75rem;
+.tpl-twocol-sidebar {
+  border-right: 2px solid #e2e8f0;
+  padding-right: 1.25rem;
+}
+.tpl-twocol-sidebar h2 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 1rem;
+  margin-bottom: 0.4rem;
+  padding-bottom: 0.15rem;
+  border-bottom: 1px solid currentColor;
+}
+.tpl-twocol-main h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-top: 1rem;
+  margin-bottom: 0.4rem;
+  padding-bottom: 0.2rem;
+  border-bottom: 2px solid currentColor;
+}
+
+/* Template 5: Executive Compact (1-Page High Density) */
+.tpl-compact {
+  padding: 1.5rem 1.8rem !important;
+  font-size: 0.84rem;
+  line-height: 1.38;
+}
+.tpl-compact h1 {
+  font-size: 1.55rem;
   font-weight: 800;
+  margin-bottom: 0.1rem;
+}
+.tpl-compact .header-contact {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1.5px solid #cbd5e1;
+}
+.tpl-compact h2 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 0.75rem;
+  margin-bottom: 0.3rem;
+  padding-bottom: 0.1rem;
+  border-bottom: 1.5px solid currentColor;
+}
+.tpl-compact h3 {
+  font-size: 0.88rem;
+  font-weight: 700;
+  margin-top: 0.4rem;
   margin-bottom: 0.15rem;
 }
-.tpl-tech .header-contact {
-  font-size: 0.85rem;
-  color: #475569;
-  margin-bottom: 1rem;
-  background: #f8fafc;
-  padding: 0.4rem 0.6rem;
-  border-radius: 4px;
-}
-.tpl-tech h2 {
-  font-size: 1rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-top: 1.1rem;
+.tpl-compact ul {
+  padding-left: 1rem;
   margin-bottom: 0.4rem;
-  display: inline-block;
-  padding: 0.15rem 0.5rem;
-  background: rgba(0,0,0,0.05);
-  border-radius: 4px;
 }
-.tpl-tech li {
-  font-size: 0.88rem;
-  margin-bottom: 0.2rem;
+.tpl-compact li {
+  font-size: 0.83rem;
+  margin-bottom: 0.15rem;
 }
 
 /* Print Optimization Styles */

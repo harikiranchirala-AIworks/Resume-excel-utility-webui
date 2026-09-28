@@ -1101,6 +1101,8 @@ function renderTailoredResume(tc, data) {
             <option value="modern" ${config.template === "modern" ? "selected" : ""}>🎨 Modern Executive</option>
             <option value="classic" ${config.template === "classic" ? "selected" : ""}>🏛️ Classic Corporate</option>
             <option value="tech" ${config.template === "tech" ? "selected" : ""}>⚡ Tech Minimalist</option>
+            <option value="twocol" ${config.template === "twocol" ? "selected" : ""}>📐 Two-Column Sleek</option>
+            <option value="compact" ${config.template === "compact" ? "selected" : ""}>📄 Executive Compact (1-Page)</option>
           </select>
         </div>
 
