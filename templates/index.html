@@ -334,172 +334,188 @@
                   <span class="signal-label">Domain Favorability</span>
                   <span class="signal-val" id="sig-domain-favorability">—</span>
                 </div>
-          <!-- ── UNIFIED RESULTS TAB HUB (Moved into Right Column) ── -->
-          <section id="results" class="hidden" style="margin-top:0.75rem">
-            <div class="card main-results-hub">
-
-              <!-- Top Results Tab Bar -->
-              <div class="hub-tab-bar" id="hub-tab-bar">
-                <button class="hub-tab active" data-hubtab="highlighter" onclick="switchHubTab('highlighter')">✨ Keyword Highlighter</button>
-                <button class="hub-tab" data-hubtab="breakdown" onclick="switchHubTab('breakdown')">🎯 Track Breakdown & Bullets</button>
-                <button class="hub-tab" data-hubtab="charts" onclick="switchHubTab('charts')">📊 Score Charts & Analytics</button>
-                <button class="hub-tab" data-hubtab="interview" onclick="switchHubTab('interview')">💬 AI Interview Prep</button>
-                <button class="hub-tab" data-hubtab="ats" onclick="switchHubTab('ats')">🛡️ ATS Audit</button>
-                <button class="hub-tab" data-hubtab="cover" onclick="switchHubTab('cover')">✉️ Cover Letter</button>
               </div>
-
-              <!-- Tab View 1: ✨ Interactive JD Keyword Highlighter -->
-              <div id="hub-view-highlighter" class="hub-view-panel">
-                <div class="jd-highlighter-card" id="jd-highlighter-card" style="border:none;padding:0;background:transparent">
-                  <div class="hl-header">
-                    <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap">
-                      <h3 style="margin:0;font-size:1.05rem;color:var(--accent2)">✨ Interactive JD Keyword Highlighter</h3>
-                      <span class="hl-count-badge" id="hl-total-hits">0 Hits</span>
-                    </div>
-
-                    <div class="hl-controls">
-                      <div class="hl-filter-group">
-                        <label for="hl-track-select" style="font-size:0.8rem;color:var(--muted);font-weight:600">Track Filter:</label>
-                        <select id="hl-track-select" class="hl-select" onchange="updateJdHighlights()">
-                          <option value="ALL">🎯 All Tracks (Combined)</option>
-                          <option value="AI">🤖 AI Transformation</option>
-                          <option value="TPM">📊 Technical Program Manager</option>
-                          <option value="ITDM">💻 IT Delivery Manager</option>
-                          <option value="PM">📦 Product Manager</option>
-                        </select>
-                      </div>
-
-                      <div class="toggle-group" id="hl-view-toggle">
-                        <button class="toggle-btn active" data-hlmode="highlight" onclick="switchHlView('highlight')">✨ Highlighted</button>
-                        <button class="toggle-btn" data-hlmode="plain" onclick="switchHlView('plain')">📄 Plain JD</button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="hl-legend-bar">
-                    <span class="hl-legend-item tier-3">
-                      <span class="hl-legend-dot t3"></span> High Weight (3 pts) — <strong id="hl-cnt-t3">0</strong>
-                    </span>
-                    <span class="hl-legend-item tier-2">
-                      <span class="hl-legend-dot t2"></span> Medium Weight (2 pts) — <strong id="hl-cnt-t2">0</strong>
-                    </span>
-                    <span class="hl-legend-item tier-1">
-                      <span class="hl-legend-dot t1"></span> Low Weight (1 pt) — <strong id="hl-cnt-t1">0</strong>
-                    </span>
-                  </div>
-
-                  <div id="hl-content-box" class="hl-content-box"></div>
-                </div>
-              </div>
-
-              <!-- Tab View 2: 🎯 Track Breakdown & Bullets -->
-              <div id="hub-view-breakdown" class="hub-view-panel hidden">
-                <div class="tabs-container" style="border:none;padding:0;background:transparent">
-                  <div class="tab-bar" id="tab-bar"></div>
-                  <div id="tab-content"></div>
-                </div>
-              </div>
-
-              <!-- Tab View 3: 📊 Score Charts & Analytics -->
-              <div id="hub-view-charts" class="hub-view-panel hidden">
-                <div class="chart-ai-grid">
-                  <div>
-                    <div class="chart-panel-header" style="margin-bottom:1rem">
-                      <span class="chart-title">📊 Score Comparison</span>
-                      <div class="toggle-group" id="chart-type-toggle">
-                        <button class="toggle-btn active" data-chart="radar" onclick="switchChart('radar')">Radar</button>
-                        <button class="toggle-btn" data-chart="bar" onclick="switchChart('bar')">Bar</button>
-                      </div>
-                    </div>
-                    <div class="chart-wrap">
-                      <canvas id="scoreChart"></canvas>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div class="card ai-panel" id="chart-side-ai-panel">
-                      <div class="ai-panel-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem">
-                        <div class="ai-panel-title" id="chart-side-ai-title" style="font-weight:700;color:var(--accent2);font-size:0.95rem">
-                          ✨ AI Resume Enhancement — Recommended Track
-                        </div>
-                        <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
-                          <button class="ai-enhance-btn" style="font-size:0.8rem;padding:0.35rem 0.85rem" id="chart-side-ai-btn">
-                            ✨ Generate Suggestions
-                          </button>
-                          <button class="tailor-btn" style="font-size:0.8rem;padding:0.35rem 0.85rem" id="chart-side-tailor-btn">
-                            🪄 Tailor Full Resume
-                          </button>
-                        </div>
-                      </div>
-                      <p id="chart-side-ai-hint" style="color:var(--muted);font-size:0.82rem;margin-top:0.4rem;margin-bottom:0.4rem">
-                        AI will analyze missing keywords and generate tailored ATS resume bullets for your recommended track.
-                      </p>
-                      <div id="chart-side-ai-result"></div>
-                      <div id="chart-side-tailor-result"></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Tab View 4: 💬 AI Interview Prep -->
-              <div id="hub-view-interview" class="hub-view-panel hidden">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem">
-                  <div>
-                    <h3 style="margin:0;font-size:1.1rem;color:var(--accent2)">💬 AI Interview Prep & STAR Answers</h3>
-                    <p style="color:var(--muted);font-size:0.85rem;margin-top:0.25rem">Top 10 role-specific interview questions with STAR method answer guides tailored to this JD.</p>
-                  </div>
-                  <button class="tailor-action-btn" id="gen-interview-btn" onclick="runGenerateInterviewPrep()">
-                    🧠 Generate Interview Q&A
-                  </button>
-                </div>
-                <div id="interview-prep-body">
-                  <div style="text-align:center;padding:2.5rem 1rem;color:var(--muted)">
-                    <div style="font-size:2.5rem;margin-bottom:0.5rem">💬</div>
-                    <p style="font-size:0.9rem">Click <strong>"🧠 Generate Interview Q&A"</strong> above to generate 10 tailored interview questions and STAR method answer guides.</p>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Tab View 5: 🛡️ ATS Gatekeeper Audit -->
-              <div id="hub-view-ats" class="hub-view-panel hidden">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem">
-                  <div>
-                    <h3 style="margin:0;font-size:1.1rem;color:var(--accent2)">🛡️ ATS Gatekeeper Scannability Audit</h3>
-                    <p style="color:var(--muted);font-size:0.85rem;margin-top:0.25rem">Audit resume for formatting, keyword density, section headers, and action verb strength.</p>
-                  </div>
-                  <button class="tailor-action-btn" id="run-ats-btn" onclick="runAtsAudit()">
-                    🔍 Audit My Resume ATS Score
-                  </button>
-                </div>
-                <div id="ats-audit-body">
-                  <div style="text-align:center;padding:2.5rem 1rem;color:var(--muted)">
-                    <div style="font-size:2.5rem;margin-bottom:0.5rem">🛡️</div>
-                    <p style="font-size:0.9rem">Click <strong>"🔍 Audit My Resume ATS Score"</strong> to evaluate your scannability rating (0-100%) and fix list.</p>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Tab View 6: ✉️ Executive Cover Letter -->
-              <div id="hub-view-cover" class="hub-view-panel hidden">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem">
-                  <div>
-                    <h3 style="margin:0;font-size:1.1rem;color:var(--accent2)">✉️ Executive Cover Letter Generator</h3>
-                    <p style="color:var(--muted);font-size:0.85rem;margin-top:0.25rem">Generates a tailored 3-paragraph executive cover letter aligned to this job description.</p>
-                  </div>
-                  <button class="tailor-action-btn" id="gen-cover-btn" onclick="runGenerateCoverLetter()">
-                    ✉️ Generate Cover Letter
-                  </button>
-                </div>
-                <div id="cover-letter-body">
-                  <div style="text-align:center;padding:2.5rem 1rem;color:var(--muted)">
-                    <div style="font-size:2.5rem;margin-bottom:0.5rem">✉️</div>
-                    <p style="font-size:0.9rem">Click <strong>"✉️ Generate Cover Letter"</strong> to create your tailored executive cover letter.</p>
-                  </div>
-                </div>
-              </div>
-
             </div>
-          </section>
+          </div>
+
+        </div><!-- /active-intelligence-panel -->
+
+      </div><!-- /right-col -->
+
+    </div><!-- /dashboard-grid -->
+
+    <!-- Loading Spinner -->
+    <div id="loading" class="hidden">
+      <div class="spinner"></div>
+      <p>Scoring against keyword bank...</p>
+    </div>
+
+    <!-- ── UNIFIED EXECUTIVE RESULTS TAB HUB (Full-Width Workspace) ── -->
+    <section id="results" class="hidden mt-card">
+      <div class="card main-results-hub">
+
+        <!-- Top Results Tab Bar -->
+        <div class="hub-tab-bar" id="hub-tab-bar">
+          <button class="hub-tab active" data-hubtab="highlighter" onclick="switchHubTab('highlighter')">✨ Keyword Highlighter</button>
+          <button class="hub-tab" data-hubtab="breakdown" onclick="switchHubTab('breakdown')">🎯 Track Breakdown & Bullets</button>
+          <button class="hub-tab" data-hubtab="charts" onclick="switchHubTab('charts')">📊 Score Charts & Analytics</button>
+          <button class="hub-tab" data-hubtab="interview" onclick="switchHubTab('interview')">💬 AI Interview Prep</button>
+          <button class="hub-tab" data-hubtab="ats" onclick="switchHubTab('ats')">🛡️ ATS Audit</button>
+          <button class="hub-tab" data-hubtab="cover" onclick="switchHubTab('cover')">✉️ Cover Letter</button>
+        </div>
+
+        <!-- Tab View 1: ✨ Interactive JD Keyword Highlighter -->
+        <div id="hub-view-highlighter" class="hub-view-panel">
+          <div class="jd-highlighter-card" id="jd-highlighter-card" style="border:none;padding:0;background:transparent">
+            <div class="hl-header">
+              <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap">
+                <h3 style="margin:0;font-size:1.05rem;color:var(--accent2)">✨ Interactive JD Keyword Highlighter</h3>
+                <span class="hl-count-badge" id="hl-total-hits">0 Hits</span>
+              </div>
+
+              <div class="hl-controls">
+                <div class="hl-filter-group">
+                  <label for="hl-track-select" style="font-size:0.8rem;color:var(--muted);font-weight:600">Track Filter:</label>
+                  <select id="hl-track-select" class="hl-select" onchange="updateJdHighlights()">
+                    <option value="ALL">🎯 All Tracks (Combined)</option>
+                    <option value="AI">🤖 AI Transformation</option>
+                    <option value="TPM">📊 Technical Program Manager</option>
+                    <option value="ITDM">💻 IT Delivery Manager</option>
+                    <option value="PM">📦 Product Manager</option>
+                  </select>
+                </div>
+
+                <div class="toggle-group" id="hl-view-toggle">
+                  <button class="toggle-btn active" data-hlmode="highlight" onclick="switchHlView('highlight')">✨ Highlighted</button>
+                  <button class="toggle-btn" data-hlmode="plain" onclick="switchHlView('plain')">📄 Plain JD</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="hl-legend-bar">
+              <span class="hl-legend-item tier-3">
+                <span class="hl-legend-dot t3"></span> High Weight (3 pts) — <strong id="hl-cnt-t3">0</strong>
+              </span>
+              <span class="hl-legend-item tier-2">
+                <span class="hl-legend-dot t2"></span> Medium Weight (2 pts) — <strong id="hl-cnt-t2">0</strong>
+              </span>
+              <span class="hl-legend-item tier-1">
+                <span class="hl-legend-dot t1"></span> Low Weight (1 pt) — <strong id="hl-cnt-t1">0</strong>
+              </span>
+            </div>
+
+            <div id="hl-content-box" class="hl-content-box"></div>
+          </div>
+        </div>
+
+        <!-- Tab View 2: 🎯 Track Breakdown & Bullets -->
+        <div id="hub-view-breakdown" class="hub-view-panel hidden">
+          <div class="tabs-container" style="border:none;padding:0;background:transparent">
+            <div class="tab-bar" id="tab-bar"></div>
+            <div id="tab-content"></div>
+          </div>
+        </div>
+
+        <!-- Tab View 3: 📊 Score Charts & Analytics -->
+        <div id="hub-view-charts" class="hub-view-panel hidden">
+          <div class="chart-ai-grid">
+            <div>
+              <div class="chart-panel-header" style="margin-bottom:1rem">
+                <span class="chart-title">📊 Score Comparison</span>
+                <div class="toggle-group" id="chart-type-toggle">
+                  <button class="toggle-btn active" data-chart="radar" onclick="switchChart('radar')">Radar</button>
+                  <button class="toggle-btn" data-chart="bar" onclick="switchChart('bar')">Bar</button>
+                </div>
+              </div>
+              <div class="chart-wrap">
+                <canvas id="scoreChart"></canvas>
+              </div>
+            </div>
+
+            <div>
+              <div class="card ai-panel" id="chart-side-ai-panel">
+                <div class="ai-panel-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem">
+                  <div class="ai-panel-title" id="chart-side-ai-title" style="font-weight:700;color:var(--accent2);font-size:0.95rem">
+                    ✨ AI Resume Enhancement — Recommended Track
+                  </div>
+                  <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+                    <button class="ai-enhance-btn" style="font-size:0.8rem;padding:0.35rem 0.85rem" id="chart-side-ai-btn">
+                      ✨ Generate Suggestions
+                    </button>
+                    <button class="tailor-btn" style="font-size:0.8rem;padding:0.35rem 0.85rem" id="chart-side-tailor-btn">
+                      🪄 Tailor Full Resume
+                    </button>
+                  </div>
+                </div>
+                <p id="chart-side-ai-hint" style="color:var(--muted);font-size:0.82rem;margin-top:0.4rem;margin-bottom:0.4rem">
+                  AI will analyze missing keywords and generate tailored ATS resume bullets for your recommended track.
+                </p>
+                <div id="chart-side-ai-result"></div>
+                <div id="chart-side-tailor-result"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab View 4: 💬 AI Interview Prep -->
+        <div id="hub-view-interview" class="hub-view-panel hidden">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem">
+            <div>
+              <h3 style="margin:0;font-size:1.1rem;color:var(--accent2)">💬 AI Interview Prep & STAR Answers</h3>
+              <p style="color:var(--muted);font-size:0.85rem;margin-top:0.25rem">Top 10 role-specific interview questions with STAR method answer guides tailored to this JD.</p>
+            </div>
+            <button class="tailor-action-btn" id="gen-interview-btn" onclick="runGenerateInterviewPrep()">
+              🧠 Generate Interview Q&A
+            </button>
+          </div>
+          <div id="interview-prep-body">
+            <div style="text-align:center;padding:2.5rem 1rem;color:var(--muted)">
+              <div style="font-size:2.5rem;margin-bottom:0.5rem">💬</div>
+              <p style="font-size:0.9rem">Click <strong>"🧠 Generate Interview Q&A"</strong> above to generate 10 tailored interview questions and STAR method answer guides.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab View 5: 🛡️ ATS Gatekeeper Audit -->
+        <div id="hub-view-ats" class="hub-view-panel hidden">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem">
+            <div>
+              <h3 style="margin:0;font-size:1.1rem;color:var(--accent2)">🛡️ ATS Gatekeeper Scannability Audit</h3>
+              <p style="color:var(--muted);font-size:0.85rem;margin-top:0.25rem">Audit resume for formatting, keyword density, section headers, and action verb strength.</p>
+            </div>
+            <button class="tailor-action-btn" id="run-ats-btn" onclick="runAtsAudit()">
+              🔍 Audit My Resume ATS Score
+            </button>
+          </div>
+          <div id="ats-audit-body">
+            <div style="text-align:center;padding:2.5rem 1rem;color:var(--muted)">
+              <div style="font-size:2.5rem;margin-bottom:0.5rem">🛡️</div>
+              <p style="font-size:0.9rem">Click <strong>"🔍 Audit My Resume ATS Score"</strong> to evaluate your scannability rating (0-100%) and fix list.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab View 6: ✉️ Executive Cover Letter -->
+        <div id="hub-view-cover" class="hub-view-panel hidden">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem">
+            <div>
+              <h3 style="margin:0;font-size:1.1rem;color:var(--accent2)">✉️ Executive Cover Letter Generator</h3>
+              <p style="color:var(--muted);font-size:0.85rem;margin-top:0.25rem">Generates a tailored 3-paragraph executive cover letter aligned to this job description.</p>
+            </div>
+            <button class="tailor-action-btn" id="gen-cover-btn" onclick="runGenerateCoverLetter()">
+              ✉️ Generate Cover Letter
+            </button>
+          </div>
+          <div id="cover-letter-body">
+            <div style="text-align:center;padding:2.5rem 1rem;color:var(--muted)">
+              <div style="font-size:2.5rem;margin-bottom:0.5rem">✉️</div>
+              <p style="font-size:0.9rem">Click <strong>"✉️ Generate Cover Letter"</strong> to create your tailored executive cover letter.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
 
         </div><!-- /active-intelligence-panel -->
 

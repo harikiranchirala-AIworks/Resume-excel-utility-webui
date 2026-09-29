@@ -901,26 +901,33 @@ footer {
 }
 .signals-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.65rem;
+}
+@media (max-width: 900px) {
+  .signals-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 .signal-item {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.55rem;
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 0.65rem 0.85rem;
+  padding: 0.55rem 0.7rem;
+  min-width: 0;
 }
 .signal-icon {
-  font-size: 1.3rem;
+  font-size: 1.2rem;
   flex-shrink: 0;
 }
 .signal-info {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-width: 0;
 }
 /* ── MODAL OVERLAY & HISTORY STYLES ── */
 .modal-overlay {
