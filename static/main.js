@@ -1330,9 +1330,33 @@ function copyTailoredMd(tc) {
   });
 }
 
+/* ═══════════════════════════ LIGHT / DARK THEME ═══════════════════════ */
+
+function initTheme() {
+  const saved = localStorage.getItem("app-theme") || "light";
+  document.documentElement.setAttribute("data-theme", saved);
+  updateThemeToggleBtn(saved);
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute("data-theme") || "light";
+  const next = current === "light" ? "dark" : "light";
+  document.documentElement.setAttribute("data-theme", next);
+  localStorage.setItem("app-theme", next);
+  updateThemeToggleBtn(next);
+}
+
+function updateThemeToggleBtn(theme) {
+  const btn = document.getElementById("theme-toggle-btn");
+  if (btn) {
+    btn.innerHTML = theme === "light" ? "☀️ Light Theme" : "🌙 Dark Theme";
+  }
+}
+
 /* ═══════════════════════════ MASTER RESUMES (PERSISTENT PROFILE) ══════ */
 
 document.addEventListener("DOMContentLoaded", () => {
+  initTheme();
   loadHistoryCount();
   loadMasterResumes();
   loadCrmApplications();
