@@ -659,6 +659,46 @@ Respond ONLY with valid JSON (no markdown fences):
         return jsonify({"error": err}), 500
 
 
+# ── JOB SEARCH & ROLE SUGGESTIONS ENDPOINT ─────────────────────────────────
+@app.route("/api/job_suggestions", methods=["GET"])
+def get_job_suggestions():
+    from job_suggestions import TRACK_TARGET_ROLES, DOMAIN_RULES, build_job_search_urls
+    
+    track = request.args.get("track", "ALL").upper()
+    location = request.args.get("location", "").strip()
+
+    roles_data = {}
+    if track == "ALL" or track not in TRACK_TARGET_ROLES:
+        for tc, info in TRACK_TARGET_ROLES.items():
+            roles_data[tc] = {
+                **info,
+                "role_links": [
+                    {
+                        "title": title,
+                        "urls": build_job_search_urls(title, location)
+                    }
+                    for title in info["titles"]
+                ]
+            }
+    else:
+        info = TRACK_TARGET_ROLES[track]
+        roles_data[track] = {
+            **info,
+            "role_links": [
+                {
+                    "title": title,
+                    "urls": build_job_search_urls(title, location)
+                }
+                for title in info["titles"]
+            ]
+        }
+
+    return jsonify({
+        "tracks": roles_data,
+        "domain_rules": DOMAIN_RULES
+    })
+
+
 # ── API KEY STATUS ────────────────────────────────────────────────────────────
 @app.route("/api_key_status", methods=["GET"])
 def api_key_status():

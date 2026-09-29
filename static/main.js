@@ -254,6 +254,12 @@ function renderResults(data) {
     document.getElementById("sig-work").textContent = signals.work_mode || "Not specified";
     document.getElementById("sig-seniority").textContent = signals.seniority || "Not specified";
     document.getElementById("sig-industry").textContent = signals.industry || "Not specified";
+    if (document.getElementById("sig-domain-favorability") && signals.domain_suitability) {
+      const ds = signals.domain_suitability;
+      const el = document.getElementById("sig-domain-favorability");
+      el.textContent = ds.summary || "General Tech";
+      el.className = `signal-val ${ds.badge_class || ''}`;
+    }
   }
   renderSummaryCards(tracks);
   renderTabs(tracks, bullets, matched_keywords);
@@ -2669,4 +2675,90 @@ async function loadSkillHeatmapAnalytics() {
   } catch (e) {
     console.error("Failed to load skill heatmap analytics:", e);
   }
+}
+
+/* ═══════════════════════════ 1-CLICK JOB SEARCH & ROLE SUGGESTIONS ═══════════════ */
+
+let activeJobSearchTrack = "ALL";
+let cachedJobSuggestions = null;
+
+function openJobSearchModal() {
+  document.getElementById("job-search-modal")?.classList.remove("hidden");
+  loadJobSuggestions();
+}
+
+function closeJobSearchModal() {
+  document.getElementById("job-search-modal")?.classList.add("hidden");
+}
+
+function renderJobSearchTrack(trackCode) {
+  activeJobSearchTrack = trackCode;
+  document.querySelectorAll("#js-track-toggle .toggle-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.jstrack === trackCode);
+  });
+  renderJobSearchContent();
+}
+
+async function loadJobSuggestions() {
+  const container = document.getElementById("js-roles-container");
+  if (container) container.innerHTML = `<p style="color:var(--muted);text-align:center;padding:1.5rem">Loading target role titles & search options...</p>`;
+  
+  try {
+    const loc = document.getElementById("js-loc-input")?.value || "";
+    const resp = await fetch(`/api/job_suggestions?location=${encodeURIComponent(loc)}`);
+    const data = await resp.json();
+    cachedJobSuggestions = data;
+    renderJobSearchContent();
+  } catch (e) {
+    if (container) container.innerHTML = `<p class="error-msg">Failed to load job suggestions: ${escHtml(e.message)}</p>`;
+  }
+}
+
+function renderJobSearchContent() {
+  const container = document.getElementById("js-roles-container");
+  if (!container || !cachedJobSuggestions) return;
+
+  const { tracks } = cachedJobSuggestions;
+  const loc = (document.getElementById("js-loc-input")?.value || "").trim();
+
+  let html = "";
+  const trackKeys = activeJobSearchTrack === "ALL" ? Object.keys(tracks) : [activeJobSearchTrack];
+
+  trackKeys.forEach(tc => {
+    const t = tracks[tc];
+    if (!t) return;
+
+    html += `
+      <div class="js-track-card">
+        <div class="js-track-header">
+          <div class="js-track-title">${t.icon || '💼'} ${escHtml(t.track_name)}</div>
+          <div style="font-size:0.78rem;color:var(--muted)">Target Sectors: <strong style="color:var(--text)">${t.target_sectors.join(" • ")}</strong></div>
+        </div>
+        <div class="js-roles-grid">
+          ${t.role_links.map(rl => {
+            const queryStr = rl.title + (loc ? ` ${loc}` : "");
+            const encodedQuery = encodeURIComponent(queryStr);
+            const encodedTitle = encodeURIComponent(rl.title);
+            
+            const liUrl = `https://www.linkedin.com/jobs/search/?keywords=${encodedQuery}`;
+            const gUrl = `https://www.google.com/search?q=${encodeURIComponent(queryStr + " jobs")}`;
+            const indUrl = `https://www.indeed.com/jobs?q=${encodedQuery}`;
+            
+            return `
+              <div class="js-role-card">
+                <div class="js-role-title">🎯 ${escHtml(rl.title)}</div>
+                <div class="js-portal-btns">
+                  <a href="${liUrl}" target="_blank" rel="noopener" class="js-portal-btn js-btn-linkedin">💼 LinkedIn</a>
+                  <a href="${gUrl}" target="_blank" rel="noopener" class="js-portal-btn js-btn-google">🔍 Google Jobs</a>
+                  <a href="${indUrl}" target="_blank" rel="noopener" class="js-portal-btn js-btn-indeed">🎯 Indeed</a>
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
 }

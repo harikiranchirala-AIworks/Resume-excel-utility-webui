@@ -207,6 +207,8 @@ def score_jd(jd_text: str) -> dict:
     }
 
 
+from job_suggestions import analyze_domain_suitability
+
 def extract_jd_signals(jd_text: str) -> dict:
     """
     Extracts key executive metadata signals from the JD text:
@@ -215,6 +217,7 @@ def extract_jd_signals(jd_text: str) -> dict:
       - work_mode: Remote / Hybrid / On-site
       - seniority: Seniority Level
       - industry: Industry / Domain Focus
+      - domain_suitability: Domain favorability rating (Suitable, Medium, Less Suitable)
     """
     text = jd_text.lower()
 
@@ -269,20 +272,25 @@ def extract_jd_signals(jd_text: str) -> dict:
 
     # 5. Industry / Domain Signals
     industries = []
+    if any(k in text for k in ['telecom', 'pharma', 'biotech', 'bio-tech']): industries.append('Telecom / Pharma / Bio-Tech (Highly Suitable)')
+    if any(k in text for k in ['gcc', 'salesforce']): industries.append('GCC / Salesforce Ecosystem')
+    if any(k in text for k in ['transportation', 'media', 'travel']): industries.append('Transportation / Media / Travel')
+    if any(k in text for k in ['bfsi', 'banking', 'finance']): industries.append('BFSI / Banking / Finance')
     if any(k in text for k in ['saas', 'software as a service']): industries.append('SaaS')
-    if any(k in text for k in ['erp', 'crm', 'enterprise']): industries.append('Enterprise Systems')
-    if any(k in text for k in ['fintech', 'finance', 'banking']): industries.append('Fintech / Finance')
     if any(k in text for k in ['ai', 'genai', 'machine learning', 'llm']): industries.append('AI & GenAI')
-    if any(k in text for k in ['consulting', 'services']): industries.append('Consulting')
 
     industry_str = ' / '.join(industries) if industries else 'Technology / IT'
+
+    # 6. Domain Suitability Analysis
+    domain_suitability = analyze_domain_suitability(jd_text)
 
     return {
         'salary': salary or 'Not specified in JD',
         'experience': exp or 'Not specified',
         'work_mode': work_mode,
         'seniority': seniority,
-        'industry': industry_str
+        'industry': industry_str,
+        'domain_suitability': domain_suitability
     }
 
 
