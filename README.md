@@ -1,4 +1,4 @@
-﻿# 🎯 Resume-Excel-Utility Web UI
+# 🚀 OfferCraft AI — Executive Resume & Career Matching Suite
 
 An automated **Job Description (JD) to Resume Matching & AI Enhancement Utility** built with Flask, Chart.js, and Google Gemini 3.6 Flash. 
 
