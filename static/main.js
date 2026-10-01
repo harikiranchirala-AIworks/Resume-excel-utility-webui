@@ -292,11 +292,25 @@ function renderSummaryCards(tracks) {
       document.getElementById("results")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     };
     card.innerHTML = `
-      <div class="track-name">${TRACK_EMOJIS[tc]} ${tc}</div>
-      <div class="score-num">${t.final_pts} <span style="font-size:0.9rem;font-weight:400;color:var(--muted)">pts</span> <span style="font-size:0.85rem;color:var(--text);font-weight:400">(${t.pct}%)</span></div>
-      <span class="level-badge ${t.level_class}">${t.level}</span>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem">
+        <div class="track-name">${TRACK_EMOJIS[tc]} ${tc}</div>
+        <span class="level-badge ${t.level_class}">${t.level}</span>
+      </div>
+      <div class="score-num" style="margin:0.2rem 0">${t.final_pts} <span style="font-size:0.85rem;font-weight:400;color:var(--muted)">pts</span> <span style="font-size:0.9rem;color:var(--text);font-weight:700">(${t.pct}% Match)</span></div>
+      
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.35rem;margin:0.4rem 0;font-size:0.75rem">
+        <div style="background:var(--surface);padding:0.25rem 0.4rem;border-radius:4px;border:1px solid var(--border)">
+          <span style="color:var(--muted);display:block">🛡️ ATS Score</span>
+          <strong style="color:var(--accent2);font-size:0.85rem">${t.ats_score || 85}%</strong>
+        </div>
+        <div style="background:var(--surface);padding:0.25rem 0.4rem;border-radius:4px;border:1px solid var(--border)">
+          <span style="color:var(--muted);display:block">📞 Interview Call Odds</span>
+          <strong style="color:var(--accent);font-size:0.85rem">${t.interview_prob || 80}%</strong>
+        </div>
+      </div>
+
       <div class="progress-bar-wrap"><div class="progress-bar" style="width:${t.pct}%"></div></div>
-      <div style="font-size:0.78rem;color:var(--muted);margin-top:0.4rem">${t.label}</div>`;
+      <div style="font-size:0.75rem;color:var(--muted);margin-top:0.35rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.label}</div>`;
     grid.appendChild(card);
   });
 }
@@ -891,11 +905,14 @@ function renderBestTrackBanner(data) {
 
   document.getElementById("bt-track-name").textContent =
     `${TRACK_EMOJIS[best_track]} ${t.label}`;
-  document.getElementById("bt-pct").textContent = `${t.final_pts} pts (${t.pct}%)`;
+  
+  const probStr = t.interview_prob ? ` • 📞 Interview Call Odds: ${t.interview_prob}%` : "";
+  const atsStr = t.ats_score ? ` • 🛡️ ATS: ${t.ats_score}%` : "";
+  document.getElementById("bt-pct").textContent = `${t.final_pts} pts (${t.pct}% Match)${atsStr}${probStr}`;
 
   const levelBadge = document.getElementById("bt-level-badge");
   levelBadge.className = `level-badge ${t.level_class}`;
-  levelBadge.textContent = t.level;
+  levelBadge.textContent = t.interview_tier || t.level;
 
   document.getElementById("bt-runner-up").textContent = runnerUpT
     ? `Runner-up: ${TRACK_EMOJIS[runnerUpTc]} ${runnerUpT.label} (${runnerUpT.final_pts} pts)`
@@ -2785,4 +2802,61 @@ function renderJobSearchContent() {
   });
 
   container.innerHTML = html;
+}
+
+/* ═══════════════════════════ RECRUITER INMAIL PITCH GENERATOR ═══════════ */
+
+async function runGenerateRecruiterPitch() {
+  const jdText = getJdText();
+  if (!jdText) { showError("Please paste or fetch a Job Description first."); return; }
+
+  const bodyEl = document.getElementById("pitch-body");
+  const btn = document.getElementById("gen-pitch-btn");
+
+  bodyEl.innerHTML = `<div style="text-align:center;padding:2rem 0;color:var(--accent)"><span class="ai-spinner"></span> Generating Executive Recruiter Outreach Pitch...</div>`;
+  btn.disabled = true;
+
+  try {
+    const track = activeTab || "AI";
+    const resumeText = getEffectiveResumeText(track);
+    const candidate_info = getCandidateInfo();
+    const preferred_model = getSelectedAiModel();
+
+    const resp = await fetch("/generate_recruiter_pitch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jd_text: jdText, track, resume_text: resumeText, candidate_info, preferred_model })
+    });
+
+    const data = await resp.json();
+    if (data.error) {
+      bodyEl.innerHTML = `<p class="error-msg">Failed to generate pitch: ${escHtml(data.error)}</p>`;
+      return;
+    }
+
+    bodyEl.innerHTML = `
+      <div style="background:var(--surface2);border:1px solid var(--accent);border-radius:10px;padding:1.25rem;margin-top:0.5rem">
+        <div style="font-weight:700;color:var(--accent2);font-size:0.95rem;margin-bottom:0.4rem">
+          📩 LinkedIn InMail Subject: ${escHtml(data.subject)}
+        </div>
+        <div style="font-size:0.9rem;color:var(--text);line-height:1.6;background:var(--surface);padding:1rem;border-radius:8px;border:1px solid var(--border);margin-bottom:0.75rem;white-space:pre-wrap">
+${escHtml(data.pitch_text)}
+        </div>
+        ${data.key_highlights && data.key_highlights.length ? `
+          <div style="font-size:0.82rem;color:var(--muted)">
+            <strong>💡 Key Pitch Selling Points:</strong>
+            <ul style="padding-left:1.2rem;margin-top:0.25rem">
+              ${data.key_highlights.map(h => `<li>${escHtml(h)}</li>`).join("")}
+            </ul>
+          </div>` : ''}
+        <div style="margin-top:0.75rem;text-align:right">
+          <button class="tailor-action-btn" onclick="navigator.clipboard.writeText('${escHtml(data.pitch_text).replace(/'/g, "\\'")}'); alert('✓ Copied InMail Pitch to Clipboard!');">📋 Copy InMail Text</button>
+        </div>
+      </div>`;
+
+  } catch (e) {
+    bodyEl.innerHTML = `<p class="error-msg">Request failed: ${escHtml(e.message)}</p>`;
+  } finally {
+    btn.disabled = false;
+  }
 }

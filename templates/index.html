@@ -354,7 +354,7 @@
     <section id="results" class="hidden mt-card">
       <div class="card main-results-hub">
 
-        <!-- Top Results Tab Bar -->
+          <!-- Top Results Tab Bar -->
         <div class="hub-tab-bar" id="hub-tab-bar">
           <button class="hub-tab active" data-hubtab="highlighter" onclick="switchHubTab('highlighter')">✨ Keyword Highlighter</button>
           <button class="hub-tab" data-hubtab="breakdown" onclick="switchHubTab('breakdown')">🎯 Track Breakdown & Bullets</button>
@@ -362,6 +362,7 @@
           <button class="hub-tab" data-hubtab="interview" onclick="switchHubTab('interview')">💬 AI Interview Prep</button>
           <button class="hub-tab" data-hubtab="ats" onclick="switchHubTab('ats')">🛡️ ATS Audit</button>
           <button class="hub-tab" data-hubtab="cover" onclick="switchHubTab('cover')">✉️ Cover Letter</button>
+          <button class="hub-tab" data-hubtab="pitch" onclick="switchHubTab('pitch')">📩 Recruiter InMail Pitch</button>
         </div>
 
         <!-- Tab View 1: ✨ Interactive JD Keyword Highlighter -->
@@ -510,6 +511,25 @@
             <div style="text-align:center;padding:2.5rem 1rem;color:var(--muted)">
               <div style="font-size:2.5rem;margin-bottom:0.5rem">✉️</div>
               <p style="font-size:0.9rem">Click <strong>"✉️ Generate Cover Letter"</strong> to create your tailored executive cover letter.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab View 7: 📩 Executive Recruiter Pitch & InMail Intro -->
+        <div id="hub-view-pitch" class="hub-view-panel hidden">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem">
+            <div>
+              <h3 style="margin:0;font-size:1.1rem;color:var(--accent2)">📩 Executive Recruiter Pitch & InMail Intro</h3>
+              <p style="color:var(--muted);font-size:0.85rem;margin-top:0.25rem">Generate a 3-sentence high-converting LinkedIn recruiter message tailored to this JD.</p>
+            </div>
+            <button class="tailor-action-btn" id="gen-pitch-btn" onclick="runGenerateRecruiterPitch()">
+              ✨ Generate InMail Pitch
+            </button>
+          </div>
+          <div id="pitch-body">
+            <div style="text-align:center;padding:2.5rem 1rem;color:var(--muted)">
+              <div style="font-size:2.5rem;margin-bottom:0.5rem">📩</div>
+              <p style="font-size:0.9rem">Click <strong>"✨ Generate InMail Pitch"</strong> above to generate your recruiter outreach message.</p>
             </div>
           </div>
         </div>

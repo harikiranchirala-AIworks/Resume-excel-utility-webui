@@ -700,3 +700,63 @@ Respond ONLY with valid JSON:
     except Exception as e:
         return {"error": str(e)}
 
+
+def generate_recruiter_pitch(jd_text: str, track_code: str, resume_text: str = "", candidate_info: dict = None, preferred_model: str = None) -> dict:
+    """
+    Generates a 3-sentence executive Recruiter InMail message / Elevator Intro tailored to the candidate and JD.
+    """
+    api_key = get_api_key()
+    if not api_key:
+        return {"error": "NO_API_KEY"}
+
+    from excel_reader import TRACK_LABELS
+    track_label = TRACK_LABELS.get(track_code, track_code)
+    cand_name = candidate_info.get("name", "Candidate") if candidate_info else "Candidate"
+
+    prompt = f"""You are an executive talent agent writing a high-impact 3-sentence LinkedIn InMail / Recruiter Outreach message.
+
+Candidate Name: {cand_name}
+Target Role Track: {track_label}
+
+Job Description:
+{jd_text[:3000]}
+
+Candidate Resume / Profile Summary:
+{resume_text[:2500] if resume_text else "(No detailed resume provided)"}
+
+Task:
+Write a compelling 3-paragraph/3-sentence InMail message introducing {cand_name} for this specific role.
+
+Format:
+- Sentence 1: Hook highlighting years of leadership experience and domain match.
+- Sentence 2: Key achievement with metrics directly relevant to JD requirement.
+- Sentence 3: Call to action for a 15-min discovery call.
+
+Respond ONLY with valid JSON:
+{{
+  "subject": "Executive Application: {track_label} — {cand_name}",
+  "pitch_text": "<Full 3-sentence elevator pitch text>",
+  "key_highlights": ["<highlight 1>", "<highlight 2>"]
+}}"""
+
+    try:
+        import warnings
+        from google import genai
+        warnings.filterwarnings("ignore", category=UserWarning)
+        client = genai.Client(api_key=api_key)
+
+        raw, model_used = call_gemini_with_fallback(client, prompt, temperature=0.4, preferred_model=preferred_model)
+
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1]
+            if raw.endswith("```"):
+                raw = raw.rsplit("```", 1)[0]
+        raw = raw.strip()
+
+        data = json.loads(raw)
+        data["error"] = None
+        data["model_used"] = model_used
+        return data
+    except Exception as e:
+        return {"error": str(e)}
+

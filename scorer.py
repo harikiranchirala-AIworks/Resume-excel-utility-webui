@@ -154,6 +154,9 @@ def score_jd(jd_text: str) -> dict:
         # Percentage capacity (out of 40 max points)
         pct = min(100, round((final_pts / 40.0) * 100))
 
+        # ATS Scannability Index (0-100%)
+        ats_score = min(98, max(50, round(pct * 0.65 + r_score * 3.5 + c_score * 3.5 - p_score * 2)))
+
         tracks[track_code] = {
             "label": TRACK_LABELS[track_code],
             "keywords": scored_kws,
@@ -164,9 +167,38 @@ def score_jd(jd_text: str) -> dict:
             "final_pts": final_pts,
             "max_weighted": 40,
             "pct": pct,
+            "ats_score": ats_score,
             "level": level,
             "level_class": level.lower().replace(" ", "-"),
         }
+
+    # Extract JD intelligence signals (Salary, Experience, Work Mode, Seniority, Industry, Domain Favorability)
+    signals = extract_jd_signals(jd_text)
+    dom_tier = signals.get("domain_suitability", {}).get("tier", "NEUTRAL")
+    dom_mult = 1.15 if dom_tier == "SUITABLE" else (1.05 if dom_tier == "MEDIUM" else (0.88 if dom_tier == "LESS_SUITABLE" else 1.00))
+
+    # Calculate Interview Call Probability (%) per track
+    for tc, t in tracks.items():
+        pct = t["pct"]
+        ats = t["ats_score"]
+        r = t["resp_score"]
+        c = t["comp_score"]
+        raw_odds = (pct * 0.45 + ats * 0.35 + (r + c) * 2.5)
+        interview_prob = min(98, max(25, round(raw_odds * dom_mult)))
+        
+        if interview_prob >= 82:
+            tier_str = "🎯 High Odds (Top 5% Pool)"
+            badge_cls = "badge-strong"
+        elif interview_prob >= 65:
+            tier_str = "🟡 Moderate Odds (Top 20% Pool)"
+            badge_cls = "badge-good"
+        else:
+            tier_str = "⚠️ Low Odds (Tailoring Needed)"
+            badge_cls = "badge-weak"
+
+        t["interview_prob"] = interview_prob
+        t["interview_tier"] = tier_str
+        t["interview_badge_class"] = badge_cls
 
     # Filter bullets — mark which ones hit based on theme matching
     track_bullets = {tc: [] for tc in TRACK_LABELS}
@@ -192,9 +224,6 @@ def score_jd(jd_text: str) -> dict:
         key=lambda tc: tracks.get(tc, {}).get("pct", 0),
         reverse=True,
     )
-
-    # Extract JD intelligence signals (Salary, Experience, Work Mode, Seniority, Industry)
-    signals = extract_jd_signals(jd_text)
 
     return {
         "tracks": tracks,

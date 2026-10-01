@@ -699,6 +699,24 @@ def get_job_suggestions():
     })
 
 
+# ── RECRUITER INMAIL / ELEVATOR PITCH ENDPOINT ──────────────────────────────
+@app.route("/generate_recruiter_pitch", methods=["POST"])
+def generate_pitch_route():
+    data = request.get_json(force=True) or {}
+    jd_text = data.get("jd_text", "").strip()
+    track_code = data.get("track", "AI").upper()
+    resume_text = data.get("resume_text", "").strip()
+    candidate_info = data.get("candidate_info", {})
+    preferred_model = data.get("preferred_model")
+
+    if not jd_text:
+        return jsonify({"error": "Job description text is required."}), 400
+
+    from ai_enhancer import generate_recruiter_pitch
+    res = generate_recruiter_pitch(jd_text, track_code, resume_text, candidate_info, preferred_model)
+    return jsonify(res)
+
+
 # ── API KEY STATUS ────────────────────────────────────────────────────────────
 @app.route("/api_key_status", methods=["GET"])
 def api_key_status():
