@@ -906,12 +906,16 @@ function renderBestTrackBanner(data) {
   document.getElementById("bt-track-name").textContent =
     `${TRACK_EMOJIS[best_track]} ${t.label}`;
   
-  const probStr = t.interview_prob ? ` • 📞 Interview Call Odds: ${t.interview_prob}%` : "";
-  const atsStr = t.ats_score ? ` • 🛡️ ATS: ${t.ats_score}%` : "";
-  document.getElementById("bt-pct").textContent = `${t.final_pts} pts (${t.pct}% Match)${atsStr}${probStr}`;
+  const scoreRowEl = document.getElementById("bt-pct");
+  scoreRowEl.innerHTML = `
+    <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin:0.3rem 0">
+      <span class="badge-level badge-strong" style="font-size:0.82rem;padding:0.25rem 0.6rem">🎯 Keyword Match: ${t.pct}%</span>
+      <span class="badge-level badge-good" style="font-size:0.82rem;padding:0.25rem 0.6rem">🛡️ ATS Scannability: ${t.ats_score || 85}%</span>
+      <span class="badge-level ${t.interview_badge_class || 'badge-strong'}" style="font-size:0.82rem;padding:0.25rem 0.6rem">📞 Interview Call Odds: ${t.interview_prob || 80}%</span>
+    </div>`;
 
   const levelBadge = document.getElementById("bt-level-badge");
-  levelBadge.className = `level-badge ${t.level_class}`;
+  levelBadge.className = `level-badge ${t.interview_badge_class || t.level_class}`;
   levelBadge.textContent = t.interview_tier || t.level;
 
   document.getElementById("bt-runner-up").textContent = runnerUpT
