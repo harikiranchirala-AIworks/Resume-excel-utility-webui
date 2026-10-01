@@ -215,6 +215,7 @@ function showLoading(on) { document.getElementById("loading").classList.toggle("
 function hideResults() {
   document.getElementById("results")?.classList.add("hidden");
   document.getElementById("active-intelligence-panel")?.classList.add("hidden");
+  document.getElementById("job-signals-card")?.classList.add("hidden");
   document.getElementById("empty-intelligence-card")?.classList.remove("hidden");
 }
 
@@ -269,6 +270,7 @@ function renderResults(data) {
 
   document.getElementById("empty-intelligence-card")?.classList.add("hidden");
   document.getElementById("active-intelligence-panel")?.classList.remove("hidden");
+  document.getElementById("job-signals-card")?.classList.remove("hidden");
   document.getElementById("results")?.classList.remove("hidden");
 
   activateTab(TRACK_ORDER[0]);
@@ -397,24 +399,6 @@ function renderTabContent(tc) {
   content.innerHTML += `
     ${hitBullets.length ? `<div class="bullets-header">✅ JD-Matching Bullets (${hitBullets.length})</div>${renderBullets(hitBullets)}` : ""}
     ${otherBullets.length ? `<div class="bullets-header" style="color:var(--muted)">📋 Other Bullets</div>${renderBullets(otherBullets)}` : ""}
-
-    <!-- AI Enhancement Panel -->
-    <div class="ai-panel">
-      <div class="ai-panel-header">
-        <div class="ai-panel-title">✨ AI Resume Enhancement — ${t.label}</div>
-        <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
-          <button class="ai-enhance-btn" id="ai-btn-${tc}" onclick="runEnhancement('${tc}')">
-            ${hasResume ? "✨ Enhance My Resume" : "✨ Generate Suggestions"}
-          </button>
-          <button class="tailor-btn" id="tailor-btn-${tc}" onclick="runTailorResume('${tc}')">
-            🪄 Tailor Full Resume
-          </button>
-        </div>
-      </div>
-      ${!hasResume ? `<p style="color:var(--muted);font-size:0.85rem">No resume provided for this track — AI will generate general suggestions based on the JD. Add your resume above for personalised advice.</p>` : `<p style="color:var(--accent2);font-size:0.85rem">✓ Resume loaded for this track. Click to get personalised suggestions or generate a full tailored ATS resume.</p>`}
-      <div id="ai-result-${tc}"></div>
-      <div id="tailor-result-${tc}"></div>
-    </div>
   `;
 }
 

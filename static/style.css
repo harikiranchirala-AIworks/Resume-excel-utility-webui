@@ -58,24 +58,47 @@ body {
   position: relative;
 }
 
-/* ── WATERMARK BACKGROUND LOGO ── */
+/* ── WATERMARK BACKGROUND LOGOS (LEFT & RIGHT MARGINS) ── */
 body::before {
   content: "";
   position: fixed;
   top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 75vw;
-  max-width: 850px;
-  height: 75vh;
-  max-height: 650px;
+  left: 20px;
+  transform: translateY(-50%);
+  width: 260px;
+  height: 260px;
   background-image: url('/static/logo.png');
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
-  opacity: 0.045;
+  opacity: 0.14;
   pointer-events: none;
-  z-index: -1;
+  z-index: 0;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  top: 50%;
+  right: 20px;
+  transform: translateY(-50%);
+  width: 260px;
+  height: 260px;
+  background-image: url('/static/logo.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  opacity: 0.14;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@media (max-width: 1450px) {
+  body::before, body::after {
+    opacity: 0.05;
+    width: 200px;
+    height: 200px;
+  }
 }
 
 /* ── HEADER ── */
@@ -922,10 +945,15 @@ footer {
 }
 .signals-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.65rem;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.75rem;
 }
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
+  .signals-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 650px) {
   .signals-grid {
     grid-template-columns: repeat(2, 1fr);
   }
