@@ -284,7 +284,7 @@ function renderSummaryCards(tracks) {
   TRACK_ORDER.forEach(tc => {
     const t = tracks[tc]; if (!t) return;
     const card = document.createElement("div");
-    card.className = `summary-card ${t.level_class}`;
+    card.className = `summary-card track-card-${tc.toLowerCase()} ${t.level_class}`;
     card.dataset.track = tc;
     card.onclick = () => {
       document.querySelectorAll(".summary-card").forEach(c => c.classList.remove("active"));
@@ -293,26 +293,41 @@ function renderSummaryCards(tracks) {
       activateTab(tc);
       document.getElementById("results")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     };
+
+    const trackColorMap = {
+      AI: { badgeBg: "rgba(99,102,241,0.12)", badgeColor: "#4f46e5", grad: "linear-gradient(90deg, #6366f1, #a855f7)" },
+      TPM: { badgeBg: "rgba(16,185,129,0.12)", badgeColor: "#059669", grad: "linear-gradient(90deg, #0ea5e9, #10b981)" },
+      ITDM: { badgeBg: "rgba(245,158,11,0.12)", badgeColor: "#d97706", grad: "linear-gradient(90deg, #f59e0b, #f97316)" },
+      PM: { badgeBg: "rgba(244,63,94,0.12)", badgeColor: "#e11d48", grad: "linear-gradient(90deg, #ec4899, #f43f5e)" }
+    };
+    const tcStyle = trackColorMap[tc] || trackColorMap.AI;
+
     card.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem">
-        <div class="track-name">${TRACK_EMOJIS[tc]} ${tc}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem">
+        <div class="track-name" style="color:${tcStyle.badgeColor};font-weight:700">${TRACK_EMOJIS[tc]} ${tc}</div>
         <span class="level-badge ${t.level_class}">${t.level}</span>
       </div>
-      <div class="score-num" style="margin:0.2rem 0">${t.final_pts} <span style="font-size:0.85rem;font-weight:400;color:var(--muted)">pts</span> <span style="font-size:0.9rem;color:var(--text);font-weight:700">(${t.pct}% Match)</span></div>
+      <div class="score-num" style="margin:0.2rem 0;display:flex;align-items:baseline;gap:0.4rem">
+        <span>${t.final_pts}</span>
+        <span style="font-size:0.82rem;font-weight:600;color:var(--muted)">pts</span>
+        <span style="font-size:0.95rem;color:var(--text);font-weight:800;margin-left:auto">${t.pct}% Match</span>
+      </div>
       
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.35rem;margin:0.4rem 0;font-size:0.75rem">
-        <div style="background:var(--surface);padding:0.25rem 0.4rem;border-radius:4px;border:1px solid var(--border)">
-          <span style="color:var(--muted);display:block">🛡️ ATS Score</span>
-          <strong style="color:var(--accent2);font-size:0.85rem">${t.ats_score || 85}%</strong>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.45rem;margin:0.5rem 0;font-size:0.75rem">
+        <div style="background:rgba(6,182,212,0.08);padding:0.35rem 0.5rem;border-radius:6px;border:1px solid rgba(6,182,212,0.25)">
+          <span style="color:var(--muted);display:block;font-size:0.72rem;font-weight:600">🛡️ ATS Score</span>
+          <strong style="color:#0891b2;font-size:0.9rem;font-weight:800">${t.ats_score || 85}%</strong>
         </div>
-        <div style="background:var(--surface);padding:0.25rem 0.4rem;border-radius:4px;border:1px solid var(--border)">
-          <span style="color:var(--muted);display:block">📞 Interview Call Odds</span>
-          <strong style="color:var(--accent);font-size:0.85rem">${t.interview_prob || 80}%</strong>
+        <div style="background:rgba(99,102,241,0.08);padding:0.35rem 0.5rem;border-radius:6px;border:1px solid rgba(99,102,241,0.25)">
+          <span style="color:var(--muted);display:block;font-size:0.72rem;font-weight:600">📞 Interview Odds</span>
+          <strong style="color:#4f46e5;font-size:0.9rem;font-weight:800">${t.interview_prob || 80}%</strong>
         </div>
       </div>
 
-      <div class="progress-bar-wrap"><div class="progress-bar" style="width:${t.pct}%"></div></div>
-      <div style="font-size:0.75rem;color:var(--muted);margin-top:0.35rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.label}</div>`;
+      <div class="progress-bar-wrap" style="height:6px;background:var(--surface2)">
+        <div class="progress-bar" style="width:${t.pct}%;background:${tcStyle.grad}"></div>
+      </div>
+      <div style="font-size:0.78rem;font-weight:600;color:var(--text);margin-top:0.4rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.label}</div>`;
     grid.appendChild(card);
   });
 }
