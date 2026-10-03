@@ -203,29 +203,111 @@ Rules:
         }
 
 
-def inject_candidate_details(markdown_text: str, candidate_info: dict = None) -> str:
+def resolve_candidate_info(candidate_info: dict = None, resume_text: str = "") -> dict:
+    """
+    Ensures a complete candidate_info dictionary by merging:
+    1. Explicitly passed candidate_info dict.
+    2. Saved candidate_info from master_resumes.json on disk.
+    3. Auto-detected name, email, phone, location, linkedin from the top lines of resume_text.
+    """
+    info = {
+        "name": "",
+        "location": "",
+        "phone": "",
+        "email": "",
+        "linkedin": ""
+    }
+    if isinstance(candidate_info, dict):
+        for k in info:
+            if candidate_info.get(k) and str(candidate_info.get(k)).strip():
+                info[k] = str(candidate_info.get(k)).strip()
+
+    # If any field is still empty, try loading from master_resumes.json
+    if not all(info.values()):
+        import os, json
+        master_file = os.path.join(os.path.dirname(__file__), "master_resumes.json")
+        if os.path.exists(master_file):
+            try:
+                with open(master_file, "r", encoding="utf-8") as f:
+                    mdata = json.load(f)
+                    disk_info = mdata.get("candidate_info", {})
+                    if isinstance(disk_info, dict):
+                        for k in info:
+                            if not info[k] and disk_info.get(k) and str(disk_info.get(k)).strip():
+                                info[k] = str(disk_info.get(k)).strip()
+            except Exception:
+                pass
+
+    # If still missing name or contact details, extract from top lines of resume_text
+    if resume_text and (not info["name"] or not info["email"] or not info["phone"]):
+        import re
+        top_lines = [l.strip() for l in resume_text.strip().splitlines()[:6] if l.strip()]
+        if top_lines and not info["name"]:
+            first = top_lines[0].replace("#", "").strip()
+            if len(first) < 45 and not any(w in first.lower() for w in ["summary", "experience", "education", "curriculum", "resume", "profile", "track"]):
+                info["name"] = first
+
+        full_top_text = " \n ".join(top_lines)
+        if not info["email"]:
+            m_email = re.search(r"[\w.+-]+@[\w-]+\.[\w.-]+", full_top_text)
+            if m_email:
+                info["email"] = m_email.group(0)
+        if not info["phone"]:
+            m_phone = re.search(r"(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}|\+91[\s-]?\d{10}|\+?\d{10,14}", full_top_text)
+            if m_phone:
+                info["phone"] = m_phone.group(0).strip()
+        if not info["location"]:
+            for line in top_lines[:3]:
+                if "India" in line or "USA" in line or "UK" in line or "Remote" in line or "Bengaluru" in line or "Bangalore" in line or "Hyderabad" in line:
+                    parts = [p.strip() for p in line.split("|")]
+                    for p in parts:
+                        if any(loc_kw in p for loc_kw in ["India", "Bengaluru", "Bangalore", "Hyderabad", "Remote", "USA", "UK"]):
+                            info["location"] = p
+                            break
+        if not info["linkedin"]:
+            m_li = re.search(r"(?:https?://)?(?:www\.)?linkedin\.com/in/[\w-]+", full_top_text, re.IGNORECASE)
+            if m_li:
+                info["linkedin"] = m_li.group(0).replace("https://", "").replace("http://", "").replace("www.", "")
+
+    return info
+
+
+def inject_candidate_details(markdown_text: str, candidate_info: dict = None, resume_text: str = "") -> str:
     """
     Ensures that full markdown resume headers use the candidate's actual name and contact details,
-    replacing placeholder brackets such as [First Name] [Last Name], [Email Address], etc.
+    replacing placeholder brackets such as [Candidate Name], [Email Address], as well as unbracketed placeholders.
     """
     if not markdown_text:
         return ""
-    if not candidate_info or not isinstance(candidate_info, dict):
-        candidate_info = {}
 
-    name = candidate_info.get("name", "").strip() or "Candidate Name"
-    location = candidate_info.get("location", "").strip() or "City, State / Remote"
-    phone = candidate_info.get("phone", "").strip() or "Phone Number"
-    email = candidate_info.get("email", "").strip() or "Email Address"
-    linkedin = candidate_info.get("linkedin", "").strip() or "LinkedIn Profile URL"
+    info = resolve_candidate_info(candidate_info, resume_text)
 
-    header_line = f"# {name}\n{location} | {phone} | {email} | {linkedin}"
+    name = info.get("name", "").strip() or "Candidate Name"
+    location = info.get("location", "").strip() or "City, State / Remote"
+    phone = info.get("phone", "").strip() or "Phone Number"
+    email = info.get("email", "").strip() or "Email Address"
+    linkedin = info.get("linkedin", "").strip() or "LinkedIn Profile URL"
+
+    contact_parts = []
+    if location and location != "City, State / Remote":
+        contact_parts.append(location)
+    if phone and phone != "Phone Number":
+        contact_parts.append(phone)
+    if email and email != "Email Address":
+        contact_parts.append(email)
+    if linkedin and linkedin != "LinkedIn Profile URL":
+        contact_parts.append(linkedin)
+
+    contact_line = " | ".join(contact_parts) if contact_parts else f"{location} | {phone} | {email} | {linkedin}"
+    header_line = f"# {name}\n{contact_line}"
 
     import re
     replacements = [
+        # Bracketed placeholders
         (r"#\s*\[First Name\]\s*\[Last Name\]", f"# {name}"),
         (r"#\s*\[Full Name\]", f"# {name}"),
         (r"#\s*\[Candidate Name\]", f"# {name}"),
+        (r"#\s*\[Your Name\]", f"# {name}"),
         (r"#\s*\[Name\]", f"# {name}"),
         (r"\[First Name\]\s*\[Last Name\]", name),
         (r"\[Full Name\]", name),
@@ -240,32 +322,42 @@ def inject_candidate_details(markdown_text: str, candidate_info: dict = None) ->
         (r"\[LinkedIn Profile URL\]", linkedin),
         (r"\[LinkedIn URL\]", linkedin),
         (r"\[LinkedIn\]", linkedin),
+
+        # Literal unbracketed placeholders
+        (r"#\s*Candidate Name\b", f"# {name}"),
+        (r"#\s*Your Name\b", f"# {name}"),
+        (r"#\s*Full Name\b", f"# {name}"),
+        (r"City,\s*State\s*/\s*Remote", location),
+        (r"Phone Number", phone),
+        (r"Email Address", email),
+        (r"LinkedIn Profile URL", linkedin),
     ]
 
     result = markdown_text
     for pattern, repl in replacements:
         result = re.sub(pattern, repl, result, flags=re.IGNORECASE)
 
-    # If header name is missing or starts with generic # Resume, fix top line
+    # Ensure the first line is # Actual Name and second line is contact details
     lines = result.strip().splitlines()
     if lines:
         first_line = lines[0].strip()
-        if not first_line.startswith("# ") or "[First Name]" in first_line or "Candidate Name" in first_line:
-            # Replace top header or prepend
-            if first_line.startswith("# "):
-                lines[0] = f"# {name}"
-                if len(lines) > 1 and ("|" in lines[1] or "[" in lines[1]):
-                    lines[1] = f"{location} | {phone} | {email} | {linkedin}"
-                else:
-                    lines.insert(1, f"{location} | {phone} | {email} | {linkedin}")
-                result = "\n".join(lines)
+        if not first_line.startswith("# ") or "Candidate Name" in first_line or "[Candidate Name]" in first_line or "Your Name" in first_line or "Full Name" in first_line:
+            lines[0] = f"# {name}"
+            if len(lines) > 1 and ("|" in lines[1] or "[" in lines[1] or "@" in lines[1] or "Phone" in lines[1] or "Email" in lines[1] or "LinkedIn" in lines[1]):
+                lines[1] = contact_line
             else:
-                result = f"{header_line}\n\n" + result
+                lines.insert(1, contact_line)
+            result = "\n".join(lines)
+        elif len(lines) > 1:
+            second_line = lines[1].strip()
+            if "Phone Number" in second_line or "Email Address" in second_line or "City, State" in second_line or "[City" in second_line or "[Phone" in second_line:
+                lines[1] = contact_line
+                result = "\n".join(lines)
 
     return result
 
 
-def tailor_full_resume(jd_text: str, resume_text: str, track_code: str, scored_kws: list[dict], candidate_info: dict = None) -> dict:
+def tailor_full_resume(jd_text: str, resume_text: str, track_code: str, scored_kws: list[dict], candidate_info: dict = None, preferred_model: str = None) -> dict:
     """
     Uses Gemini 3.6 Flash to rewrite the candidate's entire resume tailored specifically to the JD.
     Returns structured dict with tailored summary, skills, experience, and full markdown text.
@@ -282,11 +374,12 @@ def tailor_full_resume(jd_text: str, resume_text: str, track_code: str, scored_k
 
     has_resume = bool(resume_text.strip())
 
-    cand_name = candidate_info.get('name', '').strip() if candidate_info else ''
-    cand_loc = candidate_info.get('location', '').strip() if candidate_info else ''
-    cand_phone = candidate_info.get('phone', '').strip() if candidate_info else ''
-    cand_email = candidate_info.get('email', '').strip() if candidate_info else ''
-    cand_li = candidate_info.get('linkedin', '').strip() if candidate_info else ''
+    cand_info = resolve_candidate_info(candidate_info, resume_text)
+    cand_name = cand_info.get('name', '').strip()
+    cand_loc = cand_info.get('location', '').strip()
+    cand_phone = cand_info.get('phone', '').strip()
+    cand_email = cand_info.get('email', '').strip()
+    cand_li = cand_info.get('linkedin', '').strip()
 
     cand_contact_block = f"""CANDIDATE CONTACT DETAILS TO USE IN RESUME HEADER:
 - Name: {cand_name or '[Candidate Name]'}
@@ -361,7 +454,7 @@ Respond ONLY with valid JSON (no markdown fences):
         warnings.filterwarnings("ignore", category=UserWarning)
         client = genai.Client(api_key=api_key)
 
-        raw, model_used = call_gemini_with_fallback(client, prompt, temperature=0.4)
+        raw, model_used = call_gemini_with_fallback(client, prompt, temperature=0.4, preferred_model=preferred_model)
 
         if raw.startswith("```"):
             raw = raw.split("\n", 1)[1]
@@ -374,7 +467,7 @@ Respond ONLY with valid JSON (no markdown fences):
         data["model_used"] = model_used
 
         if "full_markdown" in data and data["full_markdown"]:
-            data["full_markdown"] = inject_candidate_details(data["full_markdown"], candidate_info)
+            data["full_markdown"] = inject_candidate_details(data["full_markdown"], candidate_info, resume_text)
 
         return data
 
@@ -484,7 +577,8 @@ def generate_cover_letter(jd_text: str, resume_text: str, track_code: str, candi
     track_label = TRACK_LABELS.get(track_code, track_code)
     resume_input = resume_text.strip()[:3500] if resume_text.strip() else "(No candidate resume provided)"
 
-    cand_name = candidate_info.get('name', '').strip() if candidate_info else ''
+    cand_info = resolve_candidate_info(candidate_info, resume_text)
+    cand_name = cand_info.get('name', '').strip()
 
     prompt = f"""You are an executive career strategist.
 
@@ -503,7 +597,7 @@ def generate_cover_letter(jd_text: str, resume_text: str, track_code: str, candi
 ## Task
 Generate a highly persuasive, 3-paragraph executive cover letter connecting candidate achievements directly to the job description requirements.
 
-Strict Rule: Preserve candidate's real company names if provided; sign off with Sincerely, {cand_name or '[Your Name]'}.
+Strict Rule: Preserve candidate's real company names if provided; sign off with Sincerely,\n\n{cand_name or '[Your Name]'}.
 
 Respond ONLY with valid JSON:
 {{
@@ -530,7 +624,7 @@ Respond ONLY with valid JSON:
         data["model_used"] = model_used
 
         if "cover_letter_markdown" in data and data["cover_letter_markdown"]:
-            data["cover_letter_markdown"] = inject_candidate_details(data["cover_letter_markdown"], candidate_info)
+            data["cover_letter_markdown"] = inject_candidate_details(data["cover_letter_markdown"], candidate_info, resume_text)
 
         return data
     except Exception as e:
@@ -711,7 +805,8 @@ def generate_recruiter_pitch(jd_text: str, track_code: str, resume_text: str = "
 
     from excel_reader import TRACK_LABELS
     track_label = TRACK_LABELS.get(track_code, track_code)
-    cand_name = candidate_info.get("name", "Candidate") if candidate_info else "Candidate"
+    cand_info = resolve_candidate_info(candidate_info, resume_text)
+    cand_name = cand_info.get("name", "Candidate") or "Candidate"
 
     prompt = f"""You are an executive talent agent writing a high-impact 3-sentence LinkedIn InMail / Recruiter Outreach message.
 

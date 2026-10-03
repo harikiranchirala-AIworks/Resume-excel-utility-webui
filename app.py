@@ -154,7 +154,7 @@ def tailor_resume():
         scored_kws = []
 
     from ai_enhancer import tailor_full_resume
-    result = tailor_full_resume(jd_text, resume_text, track_code, scored_kws, candidate_info)
+    result = tailor_full_resume(jd_text, resume_text, track_code, scored_kws, candidate_info, preferred_model=preferred_model)
     return jsonify(result)
 
 
