@@ -477,7 +477,7 @@ async function runEnhancement(tc) {
     const resp = await fetch("/enhance", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jd_text: jdText, resume_text: getEffectiveResumeText(tc), track: tc, candidate_info: getCandidateInfo(), preferred_model: getPreferredAiModel() }),
+      body: JSON.stringify({ jd_text: jdText, resume_text: getEffectiveResumeText(tc), track: tc, candidate_info: getCandidateInfo(), preferred_model: getSelectedAiModel() }),
     });
     const data = await resp.json();
 
@@ -2000,7 +2000,7 @@ async function runEnhancementInTarget(tc, targetPrefix) {
     const resp = await fetch("/enhance", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jd_text: jdText, resume_text: getEffectiveResumeText(tc), track: tc, candidate_info: getCandidateInfo(), preferred_model: getPreferredAiModel() }),
+      body: JSON.stringify({ jd_text: jdText, resume_text: getEffectiveResumeText(tc), track: tc, candidate_info: getCandidateInfo(), preferred_model: getSelectedAiModel() }),
     });
     const data = await resp.json();
 
@@ -2036,7 +2036,7 @@ async function runTailorResumeInTarget(tc, targetPrefix) {
     const resp = await fetch("/tailor_resume", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jd_text: jdText, resume_text: getEffectiveResumeText(tc), track: tc, candidate_info: getCandidateInfo(), preferred_model: getPreferredAiModel() }),
+      body: JSON.stringify({ jd_text: jdText, resume_text: getEffectiveResumeText(tc), track: tc, candidate_info: getCandidateInfo(), preferred_model: getSelectedAiModel() }),
     });
     const data = await resp.json();
 
@@ -2579,6 +2579,10 @@ function initBookmarkletLink() {
 function getSelectedAiModel() {
   const sel = document.getElementById("ai-model-select");
   return sel ? sel.value : "gemini-3.6-flash";
+}
+
+function getPreferredAiModel() {
+  return getSelectedAiModel();
 }
 
 function onAiModelChange() {
