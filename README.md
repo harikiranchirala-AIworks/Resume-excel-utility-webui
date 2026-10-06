@@ -6,6 +6,8 @@
 [![Gemini AI](https://img.shields.io/badge/Google%20Gemini-Flash%20Free%20Tier-8E75B2.svg?logo=google&logoColor=white)](https://aistudio.google.com/)
 [![Privacy First](https://img.shields.io/badge/Privacy-100%25%20Client--Side-brightgreen.svg)]()
 
+![OfferCraft AI Preview Banner](static/preview_banner.jpg)
+
 > **100% Free, Open-Source & Privacy-First Career Copilot** for tech leaders, program managers, and product professionals. Designed to bridge the gap between complex Job Descriptions (JDs) and executive resumes using Google Gemini AI.
 
 ---
