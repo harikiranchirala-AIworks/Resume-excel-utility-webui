@@ -22,10 +22,15 @@
         </div>
         <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
           <select id="ai-model-select" class="customizer-select" style="padding:0.4rem 0.75rem;font-weight:600;background:var(--surface2);border-color:var(--accent)" onchange="onAiModelChange()">
-            <option value="gemini-3.6-flash">⚡ Gemini 3.6 Flash (Fast)</option>
-            <option value="gemini-3.6-pro">🧠 Gemini 3.6 Pro (Deep Reasoning)</option>
-            <option value="gemini-3.5-flash-lite">🚀 Gemini 3.5 Flash-Lite</option>
+            <option value="gemini-2.5-flash">⚡ Gemini 2.5 Flash (Free / Recommended)</option>
+            <option value="gemini-2.0-flash">⚡ Gemini 2.0 Flash</option>
+            <option value="gemini-1.5-flash">🚀 Gemini 1.5 Flash</option>
+            <option value="gemini-3.6-flash">✨ Gemini 3.6 Flash</option>
+            <option value="gemini-1.5-pro">🧠 Gemini 1.5 Pro</option>
           </select>
+          <button class="tailor-action-btn" id="api-key-btn" style="background:rgba(99,102,241,0.18);border-color:var(--accent);color:var(--accent);font-weight:700;padding:0.45rem 0.95rem" onclick="openApiKeyModal()">
+            🔑 Free AI Key <span id="api-key-badge" style="font-size:0.75rem;padding:2px 6px;border-radius:10px;background:rgba(0,212,170,0.2);color:var(--accent2);margin-left:4px">Checking…</span>
+          </button>
           <button class="tailor-action-btn" id="theme-toggle-btn" style="background:rgba(99,102,241,0.12);border-color:var(--accent);color:var(--accent);font-weight:700;padding:0.45rem 0.95rem" onclick="toggleTheme()">
             ☀️ Light Theme
           </button>
@@ -101,20 +106,30 @@
           <div class="section-header-row" style="margin-bottom:0.4rem;flex-wrap:wrap;gap:0.5rem">
             <div style="display:flex;align-items:center;gap:0.5rem">
               <h2 class="section-title" style="margin:0">📋 Candidate Master Resumes & Profile</h2>
-              <span class="badge-optional" id="master-status-badge" style="background:rgba(0,212,170,0.18);color:var(--accent2);border:1px solid rgba(0,212,170,0.4)">💾 Saved on Disk</span>
+              <span class="badge-optional" id="master-status-badge" style="background:rgba(0,212,170,0.18);color:var(--accent2);border:1px solid rgba(0,212,170,0.4)">🔒 Private / Local</span>
             </div>
-            <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
-              <button class="tailor-action-btn" style="font-size:0.78rem;padding:0.3rem 0.75rem;background:rgba(0,212,170,0.15);color:var(--accent2);border-color:rgba(0,212,170,0.4)" onclick="openBatchUploadModal()">
-                📁 Batch Upload All 4
+            <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap">
+              <button class="tailor-action-btn" style="font-size:0.75rem;padding:0.25rem 0.65rem;background:rgba(0,212,170,0.15);color:var(--accent2);border-color:rgba(0,212,170,0.4)" onclick="openBatchUploadModal()">
+                📁 Batch Upload
               </button>
-              <button class="tailor-action-btn" style="font-size:0.78rem;padding:0.3rem 0.75rem;background:rgba(108,99,255,0.15);color:var(--accent);border-color:rgba(108,99,255,0.4)" id="save-master-btn" onclick="saveMasterResumesManually()">
-                💾 Save as Default Master
+              <button class="tailor-action-btn" style="font-size:0.75rem;padding:0.25rem 0.65rem;background:rgba(108,99,255,0.15);color:var(--accent);border-color:rgba(108,99,255,0.4)" id="save-master-btn" onclick="saveMasterResumesManually()">
+                💾 Save Profile
+              </button>
+              <button class="tailor-action-btn" style="font-size:0.75rem;padding:0.25rem 0.65rem;background:rgba(99,102,241,0.1);color:var(--text);border-color:var(--border)" onclick="exportUserDataJson()" title="Export your data to a backup JSON file">
+                📤 Export Backup
+              </button>
+              <button class="tailor-action-btn" style="font-size:0.75rem;padding:0.25rem 0.65rem;background:rgba(99,102,241,0.1);color:var(--text);border-color:var(--border)" onclick="triggerImportUserData()" title="Import your data from a backup JSON file">
+                📥 Import Backup
+              </button>
+              <input type="file" id="import-user-data-file" accept=".json" style="display:none" onchange="handleImportUserData(this)" />
+              <button class="tailor-action-btn" style="font-size:0.75rem;padding:0.25rem 0.65rem;background:rgba(255,92,124,0.1);color:#ff5c7c;border-color:rgba(255,92,124,0.3)" onclick="resetToStarterTemplates()" title="Reset all resumes to starter templates">
+                🔄 Reset
               </button>
               <button class="toggle-collapse" onclick="toggleSection('resume-body')">⌄</button>
             </div>
           </div>
           <p class="section-hint" style="margin-bottom:0.5rem">
-            <strong>One-Time Setup:</strong> Fill candidate details once below and save your 4 track resumes. They are stored on disk and auto-loaded for all future JD analyses.
+            🔒 <strong>100% Private & Local:</strong> Your candidate contact details and resumes are stored securely in your own browser (LocalStorage). Nothing is stored on central databases.
           </p>
 
           <div id="resume-body">
@@ -824,6 +839,58 @@
         <!-- Container for Job Titles Grid -->
         <div id="js-roles-container"></div>
 
+      </div>
+    </div>
+  </div>
+
+  <!-- ── BYOK API KEY & AI SETTINGS MODAL ── -->
+  <div id="api-key-modal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width:650px;width:92%">
+      <div class="modal-header">
+        <div style="display:flex;align-items:center;gap:0.75rem">
+          <div class="modal-title">🔑 Free Google Gemini AI Configuration</div>
+        </div>
+        <button class="modal-close-btn" onclick="closeApiKeyModal()">&times;</button>
+      </div>
+      <div class="modal-body" style="padding-top:0.75rem">
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-bottom:1rem">
+          <div style="font-weight:700;font-size:0.9rem;color:var(--text);margin-bottom:0.4rem;display:flex;align-items:center;gap:0.4rem">
+            <span>✨ Zero-Cost AI Usage (BYOK — Bring Your Own Key)</span>
+          </div>
+          <p style="font-size:0.82rem;color:var(--muted);margin-bottom:0.75rem;line-height:1.4">
+            OfferCraft AI connects directly with Google AI Studio's free tier. You get <strong>15 free AI requests per minute</strong> at <strong>$0 cost</strong>.
+          </p>
+          <div style="font-size:0.8rem;color:var(--text);background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);border-radius:6px;padding:0.75rem;margin-bottom:0.75rem">
+            <strong>How to get your free key (30 seconds):</strong><br/>
+            1. Visit <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--accent);font-weight:700;text-decoration:underline">Google AI Studio (aistudio.google.com)</a>.<br/>
+            2. Sign in with any Google account & click <strong>"Create API key"</strong>.<br/>
+            3. Copy and paste your key in the field below.
+          </div>
+          <p style="font-size:0.75rem;color:var(--muted)">
+            🔒 <strong>100% Privacy Guarantee:</strong> Your key is stored solely in your personal browser storage (LocalStorage) and is never saved on central servers.
+          </p>
+        </div>
+
+        <div style="margin-bottom:1rem">
+          <label style="font-size:0.82rem;font-weight:700;color:var(--text);display:block;margin-bottom:0.35rem">Google Gemini API Key</label>
+          <div style="display:flex;gap:0.5rem">
+            <input type="password" id="custom-api-key-input" placeholder="AIzaSy..." style="flex:1;padding:0.55rem;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:monospace;font-size:0.85rem" />
+            <button class="tailor-action-btn" type="button" onclick="toggleApiKeyVisibility()" style="padding:0.55rem 0.8rem" id="toggle-key-vis-btn">👁️</button>
+          </div>
+          <p id="api-key-test-result" style="font-size:0.8rem;margin-top:0.5rem;display:none;padding:0.4rem 0.6rem;border-radius:4px"></p>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem">
+          <div style="display:flex;gap:0.5rem">
+            <button class="tailor-action-btn" style="background:rgba(0,212,170,0.15);color:var(--accent2);border-color:rgba(0,212,170,0.4);font-weight:700" onclick="testAndSaveApiKey()" id="save-api-key-btn">
+              ⚡ Test & Save Key
+            </button>
+            <button class="tailor-action-btn" style="background:rgba(255,92,124,0.1);color:#ff5c7c;border-color:rgba(255,92,124,0.3)" onclick="clearSavedApiKey()">
+              🗑️ Clear Key
+            </button>
+          </div>
+          <button class="secondary" onclick="closeApiKeyModal()">Close</button>
+        </div>
       </div>
     </div>
   </div>

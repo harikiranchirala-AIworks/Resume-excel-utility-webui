@@ -16,19 +16,56 @@ TRACK_LABELS = {
 }
 
 
-def get_api_key() -> str | None:
+def get_api_key(custom_key: str = None) -> str | None:
+    if custom_key and str(custom_key).strip():
+        return str(custom_key).strip()
     return os.getenv("GEMINI_API_KEY", "").strip() or None
 
 
 MODEL_FALLBACK_CHAIN = [
+    "models/gemini-2.5-flash",
+    "models/gemini-2.0-flash",
+    "models/gemini-1.5-flash",
     "models/gemini-3.6-flash",
-    "models/gemini-3.5-flash-lite",
     "models/gemini-3.5-flash",
     "models/gemini-3.7-flash",
-    "models/gemini-3.8-flash",
     "models/gemini-flash-latest",
     "models/gemini-flash-lite-latest",
 ]
+
+
+def validate_gemini_api_key(custom_key: str = None) -> dict:
+    """Tests if the provided or stored Gemini API key can successfully authenticate with Google AI Studio."""
+    key = get_api_key(custom_key)
+    if not key:
+        return {"valid": False, "error": "No API key provided."}
+    try:
+        from google import genai
+        from google.genai import types
+        import warnings
+        warnings.filterwarnings("ignore", category=UserWarning)
+        client = genai.Client(api_key=key)
+        resp = client.models.generate_content(
+            model="models/gemini-2.5-flash",
+            contents="Say 'OK'",
+            config=types.GenerateContentConfig(temperature=0.1, max_output_tokens=10),
+        )
+        return {"valid": True, "model": "gemini-2.5-flash", "response": resp.text.strip() if resp and resp.text else "OK"}
+    except Exception as e:
+        try:
+            from google import genai
+            from google.genai import types
+            import warnings
+            warnings.filterwarnings("ignore", category=UserWarning)
+            client = genai.Client(api_key=key)
+            resp = client.models.generate_content(
+                model="models/gemini-1.5-flash",
+                contents="Say 'OK'",
+                config=types.GenerateContentConfig(temperature=0.1, max_output_tokens=10),
+            )
+            return {"valid": True, "model": "gemini-1.5-flash", "response": resp.text.strip() if resp and resp.text else "OK"}
+        except Exception as e2:
+            return {"valid": False, "error": str(e2 or e)}
 
 
 def call_gemini_with_fallback(client, prompt: str, temperature: float = 0.4, preferred_model: str = None) -> tuple[str, str]:
@@ -83,12 +120,14 @@ def enhance_resume(
     resume_text: str,
     track_code: str,
     scored_keywords: list[dict],
+    api_key: str = None,
+    preferred_model: str = None,
 ) -> dict:
     """
     Call Gemini to produce gap analysis + resume suggestions.
     """
-    api_key = get_api_key()
-    if not api_key:
+    key = get_api_key(api_key)
+    if not key:
         return {
             "gap_keywords": [],
             "suggested_bullets": [],
@@ -144,9 +183,9 @@ Rules:
         import warnings
         from google import genai
         warnings.filterwarnings("ignore", category=UserWarning)
-        client = genai.Client(api_key=api_key)
+        client = genai.Client(api_key=key)
 
-        raw, model_used = call_gemini_with_fallback(client, prompt, temperature=0.4)
+        raw, model_used = call_gemini_with_fallback(client, prompt, temperature=0.4, preferred_model=preferred_model)
 
         # Strip markdown fences if model adds them
         if raw.startswith("```"):
@@ -357,16 +396,16 @@ def inject_candidate_details(markdown_text: str, candidate_info: dict = None, re
     return result
 
 
-def tailor_full_resume(jd_text: str, resume_text: str, track_code: str, scored_kws: list[dict], candidate_info: dict = None, preferred_model: str = None) -> dict:
+def tailor_full_resume(jd_text: str, resume_text: str, track_code: str, scored_kws: list[dict], candidate_info: dict = None, preferred_model: str = None, api_key: str = None) -> dict:
     """
-    Uses Gemini 3.6 Flash to rewrite the candidate's entire resume tailored specifically to the JD.
+    Uses Gemini 3.6 Flash / 2.5 Flash to rewrite the candidate's entire resume tailored specifically to the JD.
     Returns structured dict with tailored summary, skills, experience, and full markdown text.
     """
     from excel_reader import TRACK_LABELS
     track_label = TRACK_LABELS.get(track_code, track_code)
 
-    api_key = get_api_key()
-    if not api_key:
+    key = get_api_key(api_key)
+    if not key:
         return {"error": "NO_API_KEY"}
 
     matched = [k["keyword"] for k in scored_kws if k.get("score", 0) > 0]
@@ -452,7 +491,7 @@ Respond ONLY with valid JSON (no markdown fences):
         import warnings
         from google import genai
         warnings.filterwarnings("ignore", category=UserWarning)
-        client = genai.Client(api_key=api_key)
+        client = genai.Client(api_key=key)
 
         raw, model_used = call_gemini_with_fallback(client, prompt, temperature=0.4, preferred_model=preferred_model)
 
@@ -484,12 +523,12 @@ Respond ONLY with valid JSON (no markdown fences):
         return {"error": err_str}
 
 
-def generate_interview_prep(jd_text: str, resume_text: str, track_code: str, scored_kws: list[dict]) -> dict:
+def generate_interview_prep(jd_text: str, resume_text: str, track_code: str, scored_kws: list[dict], preferred_model: str = None, api_key: str = None) -> dict:
     """
     Generates top 10 JD & role specific interview questions with STAR method answer guides.
     """
-    api_key = get_api_key()
-    if not api_key:
+    key = get_api_key(api_key)
+    if not key:
         return {"error": "NO_API_KEY"}
 
     from excel_reader import TRACK_LABELS
@@ -540,9 +579,9 @@ Respond ONLY with valid JSON (no markdown fences):
         import warnings
         from google import genai
         warnings.filterwarnings("ignore", category=UserWarning)
-        client = genai.Client(api_key=api_key)
+        client = genai.Client(api_key=key)
 
-        raw, model_used = call_gemini_with_fallback(client, prompt, temperature=0.4)
+        raw, model_used = call_gemini_with_fallback(client, prompt, temperature=0.4, preferred_model=preferred_model)
 
         if raw.startswith("```"):
             raw = raw.split("\n", 1)[1]
@@ -565,12 +604,12 @@ Respond ONLY with valid JSON (no markdown fences):
         return {"error": err_str}
 
 
-def generate_cover_letter(jd_text: str, resume_text: str, track_code: str, candidate_info: dict = None) -> dict:
+def generate_cover_letter(jd_text: str, resume_text: str, track_code: str, candidate_info: dict = None, preferred_model: str = None, api_key: str = None) -> dict:
     """
     Generates a tailored 3-paragraph executive cover letter.
     """
-    api_key = get_api_key()
-    if not api_key:
+    key = get_api_key(api_key)
+    if not key:
         return {"error": "NO_API_KEY"}
 
     from excel_reader import TRACK_LABELS
@@ -609,9 +648,9 @@ Respond ONLY with valid JSON:
         import warnings
         from google import genai
         warnings.filterwarnings("ignore", category=UserWarning)
-        client = genai.Client(api_key=api_key)
+        client = genai.Client(api_key=key)
 
-        raw, model_used = call_gemini_with_fallback(client, prompt, temperature=0.4)
+        raw, model_used = call_gemini_with_fallback(client, prompt, temperature=0.4, preferred_model=preferred_model)
 
         if raw.startswith("```"):
             raw = raw.split("\n", 1)[1]
@@ -739,12 +778,12 @@ def audit_ats_readiness(jd_text: str, resume_text: str, track_code: str, scored_
     }
 
 
-def generate_single_keyword_bullet(keyword: str, track_code: str, jd_text: str, resume_text: str, candidate_info: dict = None, preferred_model: str = None) -> dict:
+def generate_single_keyword_bullet(keyword: str, track_code: str, jd_text: str, resume_text: str, candidate_info: dict = None, preferred_model: str = None, api_key: str = None) -> dict:
     """
     Generates a single, high-impact achievement bullet point incorporating a missing keyword gap.
     """
-    api_key = get_api_key()
-    if not api_key:
+    key = get_api_key(api_key)
+    if not key:
         return {"error": "NO_API_KEY"}
 
     from excel_reader import TRACK_LABELS
@@ -777,7 +816,7 @@ Respond ONLY with valid JSON:
         import warnings
         from google import genai
         warnings.filterwarnings("ignore", category=UserWarning)
-        client = genai.Client(api_key=api_key)
+        client = genai.Client(api_key=key)
 
         raw, model_used = call_gemini_with_fallback(client, prompt, temperature=0.3, preferred_model=preferred_model)
 
@@ -795,12 +834,12 @@ Respond ONLY with valid JSON:
         return {"error": str(e)}
 
 
-def generate_recruiter_pitch(jd_text: str, track_code: str, resume_text: str = "", candidate_info: dict = None, preferred_model: str = None) -> dict:
+def generate_recruiter_pitch(jd_text: str, track_code: str, resume_text: str = "", candidate_info: dict = None, preferred_model: str = None, api_key: str = None) -> dict:
     """
     Generates a 3-sentence executive Recruiter InMail message / Elevator Intro tailored to the candidate and JD.
     """
-    api_key = get_api_key()
-    if not api_key:
+    key = get_api_key(api_key)
+    if not key:
         return {"error": "NO_API_KEY"}
 
     from excel_reader import TRACK_LABELS
@@ -838,7 +877,7 @@ Respond ONLY with valid JSON:
         import warnings
         from google import genai
         warnings.filterwarnings("ignore", category=UserWarning)
-        client = genai.Client(api_key=api_key)
+        client = genai.Client(api_key=key)
 
         raw, model_used = call_gemini_with_fallback(client, prompt, temperature=0.4, preferred_model=preferred_model)
 

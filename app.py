@@ -67,6 +67,46 @@ def upload_resume():
         return jsonify({"error": f"Could not parse file: {str(e)}"}), 500
 
 
+def extract_request_api_key():
+    """Extract user's custom Gemini API key from header or json payload or server environment."""
+    key = request.headers.get("X-Gemini-API-Key", "").strip()
+    if key:
+        return key
+    if request.is_json:
+        try:
+            body = request.get_json(silent=True) or {}
+            key = body.get("api_key", "").strip()
+            if key:
+                return key
+        except Exception:
+            pass
+    return get_api_key()
+
+
+@app.route("/api/default_templates", methods=["GET"])
+def get_default_templates():
+    from pathlib import Path
+    import json
+    templates_path = Path(__file__).parent / "default_templates.json"
+    if templates_path.exists():
+        try:
+            with open(templates_path, "r", encoding="utf-8") as f:
+                return jsonify(json.load(f))
+        except Exception:
+            pass
+    from master_resumes import load_master_resumes
+    return jsonify(load_master_resumes())
+
+
+@app.route("/api/test_key", methods=["POST"])
+def test_key_endpoint():
+    data = request.get_json(force=True) or {}
+    key = data.get("api_key", "").strip() or request.headers.get("X-Gemini-API-Key", "").strip() or get_api_key()
+    from ai_enhancer import validate_gemini_api_key
+    res = validate_gemini_api_key(key)
+    return jsonify(res)
+
+
 # ── AI ENHANCE (single track) ─────────────────────────────────────────────────
 @app.route("/enhance", methods=["POST"])
 def enhance():
@@ -74,6 +114,8 @@ def enhance():
     jd_text = data.get("jd_text", "").strip()
     resume_text = data.get("resume_text", "").strip()
     track_code = data.get("track", "AI")
+    preferred_model = data.get("preferred_model")
+    api_key = extract_request_api_key()
 
     if not jd_text:
         return jsonify({"error": "Job description is required for AI enhancement."}), 400
@@ -84,7 +126,7 @@ def enhance():
     except Exception:
         scored_kws = []
 
-    result = enhance_resume(jd_text, resume_text, track_code, scored_kws)
+    result = enhance_resume(jd_text, resume_text, track_code, scored_kws, api_key=api_key, preferred_model=preferred_model)
     return jsonify(result)
 
 
@@ -94,6 +136,8 @@ def enhance_all():
     data = request.get_json(force=True)
     jd_text = data.get("jd_text", "").strip()
     resumes = data.get("resumes", {})   # {track_code: resume_text}
+    preferred_model = data.get("preferred_model")
+    api_key = extract_request_api_key()
 
     if not jd_text:
         return jsonify({"error": "Job description is required."}), 400
@@ -107,7 +151,7 @@ def enhance_all():
     def _enhance_track(track_code):
         scored_kws = scoring_result["tracks"].get(track_code, {}).get("keywords", [])
         resume_text = resumes.get(track_code, "").strip()
-        result = enhance_resume(jd_text, resume_text, track_code, scored_kws)
+        result = enhance_resume(jd_text, resume_text, track_code, scored_kws, api_key=api_key, preferred_model=preferred_model)
         result["track"] = track_code
         result["score_pct"] = scoring_result["tracks"].get(track_code, {}).get("pct", 0)
         result["score_level"] = scoring_result["tracks"].get(track_code, {}).get("level", "")
@@ -116,11 +160,10 @@ def enhance_all():
         return track_code, result
 
     combined = {}
-    # Run 4 tracks sequentially with a 1.2s delay to respect Gemini Free Tier rate limits (5 RPM)
     import time
     for idx, tc in enumerate(TRACK_ORDER):
         if idx > 0:
-            time.sleep(1.2)
+            time.sleep(1.0)
         try:
             _, result = _enhance_track(tc)
             combined[tc] = result
@@ -142,6 +185,7 @@ def tailor_resume():
     track_code = data.get("track", "AI").strip().upper()
     candidate_info = data.get("candidate_info", {})
     preferred_model = data.get("preferred_model")
+    api_key = extract_request_api_key()
 
     if not jd_text:
         return jsonify({"error": "Job description is required."}), 400
@@ -154,7 +198,7 @@ def tailor_resume():
         scored_kws = []
 
     from ai_enhancer import tailor_full_resume
-    result = tailor_full_resume(jd_text, resume_text, track_code, scored_kws, candidate_info, preferred_model=preferred_model)
+    result = tailor_full_resume(jd_text, resume_text, track_code, scored_kws, candidate_info, preferred_model=preferred_model, api_key=api_key)
     return jsonify(result)
 
 
@@ -167,12 +211,14 @@ def inject_keyword_bullet():
     resume_text = data.get("resume_text", "").strip()
     candidate_info = data.get("candidate_info", {})
     preferred_model = data.get("preferred_model")
+    api_key = extract_request_api_key()
 
     if not keyword:
         return jsonify({"error": "Keyword parameter is required."}), 400
 
     from ai_enhancer import generate_single_keyword_bullet
-    result = generate_single_keyword_bullet(keyword, track_code, jd_text, resume_text, candidate_info, preferred_model)
+    result = generate_single_keyword_bullet(keyword, track_code, jd_text, resume_text, candidate_info, preferred_model, api_key=api_key)
+    return jsonify(result)
     return jsonify(result)
 
 
@@ -446,6 +492,8 @@ def interview_prep():
     jd_text = data.get("jd_text", "").strip()
     resume_text = data.get("resume_text", "").strip()
     track_code = data.get("track", "AI").strip().upper()
+    preferred_model = data.get("preferred_model")
+    api_key = extract_request_api_key()
 
     if not jd_text:
         return jsonify({"error": "Job description is required."}), 400
@@ -458,7 +506,7 @@ def interview_prep():
         scored_kws = []
 
     from ai_enhancer import generate_interview_prep
-    result = generate_interview_prep(jd_text, resume_text, track_code, scored_kws)
+    result = generate_interview_prep(jd_text, resume_text, track_code, scored_kws, preferred_model=preferred_model, api_key=api_key)
     return jsonify(result)
 
 
@@ -491,12 +539,14 @@ def cover_letter():
     resume_text = data.get("resume_text", "").strip()
     track_code = data.get("track", "AI").strip().upper()
     candidate_info = data.get("candidate_info", {})
+    preferred_model = data.get("preferred_model")
+    api_key = extract_request_api_key()
 
     if not jd_text:
         return jsonify({"error": "Job description is required."}), 400
 
     from ai_enhancer import generate_cover_letter
-    result = generate_cover_letter(jd_text, resume_text, track_code, candidate_info)
+    result = generate_cover_letter(jd_text, resume_text, track_code, candidate_info, preferred_model=preferred_model, api_key=api_key)
     return jsonify(result)
 
 
@@ -560,19 +610,17 @@ def compare_jds():
     return jsonify({"comparison": comparison_results})
 
 
-
 # ── AI PICK BEST TRACK ────────────────────────────────────────────────────────
 @app.route("/pick_track", methods=["POST"])
 def pick_track():
     data = request.get_json(force=True)
     jd_text = data.get("jd_text", "").strip()
     scored_tracks = data.get("scored_tracks", {})   # {tc: {pct, level, label}}
+    api_key = extract_request_api_key()
 
     if not jd_text:
         return jsonify({"error": "Job description is required."}), 400
 
-    from ai_enhancer import get_api_key
-    api_key = get_api_key()
     if not api_key:
         return jsonify({"error": "NO_API_KEY"}), 200
 
@@ -621,33 +669,15 @@ Respond ONLY with valid JSON (no markdown fences):
 
     try:
         client = genai.Client(api_key=api_key)
-        last_exc = None
-        for attempt, wait in enumerate([0, 3, 7]):
-            if wait:
-                time.sleep(wait)
-            try:
-                response = client.models.generate_content(
-                    model="models/gemini-3.6-flash",
-                    contents=prompt,
-                    config=types.GenerateContentConfig(temperature=0.3),
-                )
-                break
-            except Exception as exc:
-                last_exc = exc
-                if "503" in str(exc) or "UNAVAILABLE" in str(exc) or "429" in str(exc):
-                    if attempt < 2:
-                        continue
-                raise last_exc
-        else:
-            raise last_exc
-
-        raw = response.text.strip()
+        from ai_enhancer import call_gemini_with_fallback
+        raw, model_used = call_gemini_with_fallback(client, prompt, temperature=0.3)
         if raw.startswith("```"):
             raw = raw.split("\n", 1)[1]
             if raw.endswith("```"):
                 raw = raw.rsplit("```", 1)[0]
         result = _json.loads(raw.strip())
         result["error"] = None
+        result["model_used"] = model_used
         return jsonify(result)
 
     except _json.JSONDecodeError:
@@ -708,19 +738,21 @@ def generate_pitch_route():
     resume_text = data.get("resume_text", "").strip()
     candidate_info = data.get("candidate_info", {})
     preferred_model = data.get("preferred_model")
+    api_key = extract_request_api_key()
 
     if not jd_text:
         return jsonify({"error": "Job description text is required."}), 400
 
     from ai_enhancer import generate_recruiter_pitch
-    res = generate_recruiter_pitch(jd_text, track_code, resume_text, candidate_info, preferred_model)
+    res = generate_recruiter_pitch(jd_text, track_code, resume_text, candidate_info, preferred_model, api_key=api_key)
     return jsonify(res)
 
 
 # ── API KEY STATUS ────────────────────────────────────────────────────────────
 @app.route("/api_key_status", methods=["GET"])
 def api_key_status():
-    return jsonify({"configured": bool(get_api_key())})
+    key = request.headers.get("X-Gemini-API-Key", "").strip() or get_api_key()
+    return jsonify({"configured": bool(key)})
 
 
 if __name__ == "__main__":

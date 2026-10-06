@@ -476,7 +476,7 @@ async function runEnhancement(tc) {
   try {
     const resp = await fetch("/enhance", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ jd_text: jdText, resume_text: getEffectiveResumeText(tc), track: tc, candidate_info: getCandidateInfo(), preferred_model: getSelectedAiModel() }),
     });
     const data = await resp.json();
@@ -499,8 +499,12 @@ function formatAiError(err, summaryMsg) {
   if (!err) return "";
   const errorStr = String(err);
   if (errorStr === "NO_API_KEY" || errorStr === "INVALID_API_KEY") {
-    document.getElementById("api-key-banner")?.classList.remove("hidden");
-    return `<p class="warn-msg">⚠ ${errorStr === "INVALID_API_KEY" ? "API key is invalid. Please check your .env file." : "Gemini API key not configured. See the banner below."}</p>`;
+    return `
+      <div style="background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.35);border-radius:8px;padding:0.9rem;margin-top:0.5rem;font-size:0.83rem">
+        <div style="font-weight:700;color:var(--accent);margin-bottom:0.25rem">🔑 Free Google Gemini API Key Required</div>
+        <div style="color:var(--text);margin-bottom:0.6rem;line-height:1.4">To generate AI resume improvements and full rewrites, configure your free Google Gemini API key (15 free requests/min at $0 cost).</div>
+        <button class="tailor-action-btn" onclick="openApiKeyModal()" style="background:var(--accent);color:#ffffff;font-weight:700;padding:0.35rem 0.85rem">⚡ Add Free API Key (Takes 30s)</button>
+      </div>`;
   }
   if (errorStr === "RATE_LIMIT_EXCEEDED" || errorStr.includes("429") || errorStr.includes("RESOURCE_EXHAUSTED") || errorStr.includes("Quota")) {
     return `
@@ -742,8 +746,8 @@ async function runFullAnalysis() {
   try {
     const resp = await fetch("/enhance_all", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jd_text: jdText, resumes: resumeTexts }),
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ jd_text: jdText, resumes: resumeTexts, preferred_model: getSelectedAiModel() }),
     });
     const data = await resp.json();
 
@@ -951,13 +955,13 @@ async function runPickTrack() {
   try {
     const resp = await fetch("/pick_track", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ jd_text: jdText, scored_tracks: scoredTracks }),
     });
     const data = await resp.json();
 
     if (data.error === "NO_API_KEY" || data.error === "INVALID_API_KEY") {
-      document.getElementById("api-key-banner").classList.remove("hidden");
+      openApiKeyModal();
       return;
     }
     if (data.error) {
@@ -1062,14 +1066,13 @@ async function runTailorResume(tc) {
   try {
     const resp = await fetch("/tailor_resume", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jd_text: jdText, resume_text: getEffectiveResumeText(tc), track: tc, candidate_info: getCandidateInfo() }),
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ jd_text: jdText, resume_text: getEffectiveResumeText(tc), track: tc, candidate_info: getCandidateInfo(), preferred_model: getSelectedAiModel() }),
     });
     const data = await resp.json();
 
     if (data.error === "NO_API_KEY" || data.error === "INVALID_API_KEY") {
-      document.getElementById("api-key-banner").classList.remove("hidden");
-      resultEl.innerHTML = `<p class="warn-msg">⚠ ${data.error === "INVALID_API_KEY" ? "API key is invalid." : "Gemini API key not configured."}</p>`;
+      resultEl.innerHTML = formatAiError(data.error);
       return;
     }
     if (data.error === "RATE_LIMIT_EXCEEDED") {
@@ -1377,10 +1380,156 @@ function updateThemeToggleBtn(theme) {
 
 document.addEventListener("DOMContentLoaded", () => {
   initTheme();
+  checkApiKeyStatus();
   loadHistoryCount();
   loadMasterResumes();
   loadCrmApplications();
 });
+
+/* ═══════════════════════════ BYOK & AI SETTINGS ════════════════════════ */
+
+function getSavedApiKey() {
+  return (localStorage.getItem("oc_gemini_api_key") || "").trim();
+}
+
+function getAuthHeaders() {
+  const headers = { "Content-Type": "application/json" };
+  const key = getSavedApiKey();
+  if (key) {
+    headers["X-Gemini-API-Key"] = key;
+  }
+  return headers;
+}
+
+function openApiKeyModal() {
+  const modal = document.getElementById("api-key-modal");
+  if (!modal) return;
+  const keyInput = document.getElementById("custom-api-key-input");
+  if (keyInput) keyInput.value = getSavedApiKey();
+  const resEl = document.getElementById("api-key-test-result");
+  if (resEl) { resEl.style.display = "none"; resEl.textContent = ""; }
+  modal.classList.remove("hidden");
+}
+
+function closeApiKeyModal() {
+  document.getElementById("api-key-modal")?.classList.add("hidden");
+}
+
+function toggleApiKeyVisibility() {
+  const input = document.getElementById("custom-api-key-input");
+  const btn = document.getElementById("toggle-key-vis-btn");
+  if (!input) return;
+  if (input.type === "password") {
+    input.type = "text";
+    if (btn) btn.textContent = "🙈";
+  } else {
+    input.type = "password";
+    if (btn) btn.textContent = "👁️";
+  }
+}
+
+async function testAndSaveApiKey() {
+  const input = document.getElementById("custom-api-key-input");
+  const key = (input ? input.value : "").trim();
+  const resEl = document.getElementById("api-key-test-result");
+  const btn = document.getElementById("save-api-key-btn");
+
+  if (!key) {
+    if (resEl) {
+      resEl.style.display = "block";
+      resEl.style.background = "rgba(255,92,124,0.15)";
+      resEl.style.color = "#ff5c7c";
+      resEl.textContent = "Please paste your Google Gemini API key first.";
+    }
+    return;
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = "⏳ Testing Key…"; }
+
+  try {
+    const resp = await fetch("/api/test_key", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ api_key: key })
+    });
+    const data = await resp.json();
+
+    if (data.valid) {
+      localStorage.setItem("oc_gemini_api_key", key);
+      if (resEl) {
+        resEl.style.display = "block";
+        resEl.style.background = "rgba(0,212,170,0.15)";
+        resEl.style.color = "var(--accent2)";
+        resEl.textContent = "✓ Free Gemini API Key Verified & Saved Successfully!";
+      }
+      updateApiKeyStatusBadge(true);
+      setTimeout(() => closeApiKeyModal(), 1200);
+    } else {
+      if (resEl) {
+        resEl.style.display = "block";
+        resEl.style.background = "rgba(255,92,124,0.15)";
+        resEl.style.color = "#ff5c7c";
+        resEl.textContent = `✗ Verification failed: ${data.error || "Invalid API key"}`;
+      }
+    }
+  } catch (e) {
+    if (resEl) {
+      resEl.style.display = "block";
+      resEl.style.background = "rgba(255,92,124,0.15)";
+      resEl.style.color = "#ff5c7c";
+      resEl.textContent = `✗ Error connecting: ${e.message}`;
+    }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = "⚡ Test & Save Key"; }
+  }
+}
+
+function clearSavedApiKey() {
+  if (confirm("Remove your stored API key from this browser?")) {
+    localStorage.removeItem("oc_gemini_api_key");
+    const input = document.getElementById("custom-api-key-input");
+    if (input) input.value = "";
+    const resEl = document.getElementById("api-key-test-result");
+    if (resEl) {
+      resEl.style.display = "block";
+      resEl.style.background = "rgba(255,169,77,0.15)";
+      resEl.style.color = "var(--warn)";
+      resEl.textContent = "API key cleared from local browser storage.";
+    }
+    checkApiKeyStatus();
+  }
+}
+
+async function checkApiKeyStatus() {
+  const savedKey = getSavedApiKey();
+  if (savedKey) {
+    updateApiKeyStatusBadge(true);
+    return;
+  }
+  try {
+    const resp = await fetch("/api_key_status", { headers: getAuthHeaders() });
+    const data = await resp.json();
+    updateApiKeyStatusBadge(data.configured);
+  } catch (e) {
+    updateApiKeyStatusBadge(false);
+  }
+}
+
+function updateApiKeyStatusBadge(isConfigured) {
+  const badge = document.getElementById("api-key-badge");
+  if (!badge) return;
+  if (isConfigured) {
+    badge.textContent = "🟢 Ready";
+    badge.style.background = "rgba(0,212,170,0.2)";
+    badge.style.color = "var(--accent2)";
+  } else {
+    badge.textContent = "🔑 Setup";
+    badge.style.background = "rgba(255,169,77,0.2)";
+    badge.style.color = "var(--warn)";
+  }
+}
+
+/* ═══════════════════════════ LOCAL-FIRST MASTER RESUMES ════════════════ */
 
 function getCandidateInfo() {
   return {
@@ -1396,30 +1545,47 @@ async function saveCandidateProfileLive() {
   const candidate_info = getCandidateInfo();
   syncResumeTexts();
   try {
-    await fetch("/api/master_resumes/save", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ resumes: resumeTexts, candidate_info })
-    });
+    localStorage.setItem("oc_candidate_info", JSON.stringify(candidate_info));
+    localStorage.setItem("oc_resumes", JSON.stringify(resumeTexts));
+    const badge = document.getElementById("master-status-badge");
+    if (badge) badge.textContent = "🔒 Profile Saved (Local)";
   } catch (e) {
-    console.error("Failed to save candidate profile:", e);
+    console.error("Failed to save candidate profile locally:", e);
   }
 }
 
 async function loadMasterResumes() {
   try {
-    const resp = await fetch("/api/master_resumes");
-    const data = await resp.json();
-    const dataObj = data.resumes || {};
+    let localResumes = null;
+    let localInfo = null;
+
+    try {
+      const storedResumes = localStorage.getItem("oc_resumes");
+      const storedInfo = localStorage.getItem("oc_candidate_info");
+      if (storedResumes) localResumes = JSON.parse(storedResumes);
+      if (storedInfo) localInfo = JSON.parse(storedInfo);
+    } catch(e) {
+      console.warn("Could not parse local resume storage:", e);
+    }
+
+    if (!localResumes || Object.keys(localResumes).length === 0) {
+      // First time user: fetch clean starter templates
+      const resp = await fetch("/api/default_templates");
+      const data = await resp.json();
+      localResumes = data;
+      localInfo = data.candidate_info || {};
+      localStorage.setItem("oc_resumes", JSON.stringify(localResumes));
+      localStorage.setItem("oc_candidate_info", JSON.stringify(localInfo));
+    }
 
     let loadedCount = 0;
     TRACK_ORDER.forEach(tc => {
-      if (dataObj[tc] && dataObj[tc].trim()) {
-        resumeTexts[tc] = dataObj[tc].trim();
+      if (localResumes && localResumes[tc] && localResumes[tc].trim()) {
+        resumeTexts[tc] = localResumes[tc].trim();
         const ta = document.querySelector(`.resume-textarea[data-track="${tc}"]`);
-        if (ta) ta.value = dataObj[tc].trim();
+        if (ta) ta.value = localResumes[tc].trim();
         const statusEl = document.querySelector(`.upload-status[data-track="${tc}"]`);
-        if (statusEl) statusEl.textContent = `✓ Master Resume Loaded (${dataObj[tc].length} chars)`;
+        if (statusEl) statusEl.textContent = `✓ Loaded (${localResumes[tc].length} chars)`;
         loadedCount++;
       } else {
         const ta = document.querySelector(`.resume-textarea[data-track="${tc}"]`);
@@ -1429,7 +1595,7 @@ async function loadMasterResumes() {
       }
     });
 
-    const info = dataObj.candidate_info || {};
+    const info = localInfo || {};
     if (document.getElementById("cand-name")) document.getElementById("cand-name").value = info.name || "";
     if (document.getElementById("cand-loc")) document.getElementById("cand-loc").value = info.location || "";
     if (document.getElementById("cand-phone")) document.getElementById("cand-phone").value = info.phone || "";
@@ -1438,11 +1604,7 @@ async function loadMasterResumes() {
 
     const badge = document.getElementById("master-status-badge");
     if (badge) {
-      if (loadedCount > 0) {
-        badge.textContent = `💾 ${loadedCount} Master Resume${loadedCount > 1 ? 's' : ''} Saved on Disk`;
-      } else {
-        badge.textContent = `💾 No Master Resumes Saved Yet`;
-      }
+      badge.textContent = `🔒 ${loadedCount} Resume${loadedCount !== 1 ? 's' : ''} (Local)`;
     }
   } catch (e) {
     console.error("Failed to load master resumes:", e);
@@ -1453,30 +1615,81 @@ async function saveMasterResumesManually() {
   syncResumeTexts();
   const candidate_info = getCandidateInfo();
   const btn = document.getElementById("save-master-btn");
-  const origText = btn ? btn.innerHTML : "💾 Save as Default Master";
+  const origText = btn ? btn.innerHTML : "💾 Save Profile";
   if (btn) { btn.disabled = true; btn.textContent = "Saving…"; }
 
   try {
-    const resp = await fetch("/api/master_resumes/save", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ resumes: resumeTexts, candidate_info })
-    });
-    const data = await resp.json();
-    if (data.success) {
-      if (btn) {
-        btn.innerHTML = "✅ Saved as Master!";
-        setTimeout(() => { btn.innerHTML = origText; btn.disabled = false; }, 2000);
-      }
-      loadMasterResumes();
-    } else {
-      alert("Failed to save master resumes.");
-      if (btn) { btn.innerHTML = origText; btn.disabled = false; }
+    localStorage.setItem("oc_candidate_info", JSON.stringify(candidate_info));
+    localStorage.setItem("oc_resumes", JSON.stringify(resumeTexts));
+    if (btn) {
+      btn.innerHTML = "✅ Profile Saved!";
+      setTimeout(() => { btn.innerHTML = origText; btn.disabled = false; }, 1800);
     }
+    loadMasterResumes();
   } catch (e) {
-    alert("Error saving master resumes: " + e.message);
+    alert("Error saving profile: " + e.message);
     if (btn) { btn.innerHTML = origText; btn.disabled = false; }
   }
+}
+
+async function resetToStarterTemplates() {
+  if (!confirm("Are you sure you want to reset your resumes and profile back to the clean starter templates?")) return;
+  try {
+    const resp = await fetch("/api/default_templates");
+    const data = await resp.json();
+    localStorage.setItem("oc_resumes", JSON.stringify(data));
+    localStorage.setItem("oc_candidate_info", JSON.stringify(data.candidate_info || {}));
+    loadMasterResumes();
+    alert("✓ Reset complete. Clean starter templates loaded.");
+  } catch (e) {
+    alert("Failed to reset: " + e.message);
+  }
+}
+
+function exportUserDataJson() {
+  const exportData = {
+    version: "1.0",
+    exported_at: new Date().toISOString(),
+    candidate_info: getCandidateInfo(),
+    resumes: JSON.parse(localStorage.getItem("oc_resumes") || "{}"),
+    crm_applications: JSON.parse(localStorage.getItem("oc_crm_applications") || "[]"),
+    history_sessions: JSON.parse(localStorage.getItem("oc_history_sessions") || "[]"),
+  };
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `OfferCraft_AI_Backup_${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function triggerImportUserData() {
+  document.getElementById("import-user-data-file")?.click();
+}
+
+function handleImportUserData(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.candidate_info) localStorage.setItem("oc_candidate_info", JSON.stringify(data.candidate_info));
+      if (data.resumes) localStorage.setItem("oc_resumes", JSON.stringify(data.resumes));
+      if (data.crm_applications) localStorage.setItem("oc_crm_applications", JSON.stringify(data.crm_applications));
+      if (data.history_sessions) localStorage.setItem("oc_history_sessions", JSON.stringify(data.history_sessions));
+      loadMasterResumes();
+      loadCrmApplications();
+      alert("✓ Backup successfully imported! Your profile, resumes, and CRM records have been restored.");
+    } catch (err) {
+      alert("Invalid backup file: " + err.message);
+    }
+  };
+  reader.readAsText(file);
+  input.value = "";
 }
 
 function autoDetectContactDetails() {
@@ -1512,7 +1725,7 @@ function autoDetectContactDetails() {
   }
 
   saveCandidateProfileLive();
-  alert("✓ Contact details detected and saved!");
+  alert("✓ Contact details detected and saved locally!");
 }
 
 function clearTrackResume(track) {
@@ -1999,7 +2212,7 @@ async function runEnhancementInTarget(tc, targetPrefix) {
   try {
     const resp = await fetch("/enhance", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ jd_text: jdText, resume_text: getEffectiveResumeText(tc), track: tc, candidate_info: getCandidateInfo(), preferred_model: getSelectedAiModel() }),
     });
     const data = await resp.json();
@@ -2035,7 +2248,7 @@ async function runTailorResumeInTarget(tc, targetPrefix) {
   try {
     const resp = await fetch("/tailor_resume", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ jd_text: jdText, resume_text: getEffectiveResumeText(tc), track: tc, candidate_info: getCandidateInfo(), preferred_model: getSelectedAiModel() }),
     });
     const data = await resp.json();
@@ -2119,13 +2332,12 @@ async function runGenerateInterviewPrep() {
   try {
     const resp = await fetch("/interview_prep", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jd_text: jdText, resume_text: resumeText, track: track })
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ jd_text: jdText, resume_text: resumeText, track: track, preferred_model: getSelectedAiModel() })
     });
     const data = await resp.json();
     if (data.error === "NO_API_KEY" || data.error === "INVALID_API_KEY") {
-      document.getElementById("api-key-banner")?.classList.remove("hidden");
-      bodyEl.innerHTML = `<p class="warn-msg">⚠ Gemini API key required for Interview Prep.</p>`;
+      bodyEl.innerHTML = formatAiError(data.error);
       return;
     }
     if (data.error) {
@@ -2197,13 +2409,12 @@ async function runAtsAudit() {
   try {
     const resp = await fetch("/ats_audit", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ jd_text: jdText, resume_text: resumeText, track: track })
     });
     const data = await resp.json();
     if (data.error === "NO_API_KEY" || data.error === "INVALID_API_KEY") {
-      document.getElementById("api-key-banner")?.classList.remove("hidden");
-      bodyEl.innerHTML = `<p class="warn-msg">⚠ Gemini API key required for ATS Audit.</p>`;
+      bodyEl.innerHTML = formatAiError(data.error);
       return;
     }
     if (data.error === "RATE_LIMIT_EXCEEDED") {
@@ -2320,13 +2531,12 @@ async function runGenerateCoverLetter() {
   try {
     const resp = await fetch("/generate_cover_letter", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jd_text: jdText, resume_text: resumeText, track: track, candidate_info: getCandidateInfo() })
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ jd_text: jdText, resume_text: resumeText, track: track, candidate_info: getCandidateInfo(), preferred_model: getSelectedAiModel() })
     });
     const data = await resp.json();
     if (data.error === "NO_API_KEY" || data.error === "INVALID_API_KEY") {
-      document.getElementById("api-key-banner")?.classList.remove("hidden");
-      bodyEl.innerHTML = `<p class="warn-msg">⚠ Gemini API key required for Cover Letter.</p>`;
+      bodyEl.innerHTML = formatAiError(data.error);
       return;
     }
     if (data.error === "RATE_LIMIT_EXCEEDED") {
@@ -2404,25 +2614,33 @@ async function downloadCoverLetterDocx() {
   }
 }
 
-/* ═══════════════════════════ JOB HUNT CRM & KANBAN BOARD ═══════════════ */
+/* ═══════════════════════════ LOCAL-FIRST KANBAN CRM ═══════════════════ */
 
 let crmApplications = [];
 
-async function loadCrmApplications() {
+function loadCrmApplications() {
   try {
-    const resp = await fetch("/api/crm/applications");
-    const data = await resp.json();
-    crmApplications = data.applications || [];
+    const raw = localStorage.getItem("oc_crm_applications");
+    crmApplications = raw ? JSON.parse(raw) : [];
     
     const countEl = document.getElementById("crm-count");
     if (countEl) countEl.textContent = crmApplications.length;
     
     const badgeEl = document.getElementById("crm-total-badge");
-    if (badgeEl) badgeEl.textContent = `${crmApplications.length} Tracked Application${crmApplications.length !== 1 ? 's' : ''}`;
+    if (badgeEl) badgeEl.textContent = `${crmApplications.length} Tracked Application${crmApplications.length !== 1 ? 's' : ''} (Local)`;
 
     renderKanbanBoard();
   } catch (e) {
     console.error("Failed to load CRM applications:", e);
+  }
+}
+
+function saveCrmApplicationsLocal() {
+  try {
+    localStorage.setItem("oc_crm_applications", JSON.stringify(crmApplications));
+    loadCrmApplications();
+  } catch(e) {
+    console.error("Failed to save CRM applications locally:", e);
   }
 }
 
@@ -2476,36 +2694,21 @@ function renderKanbanBoard() {
   });
 }
 
-async function moveCrmStage(appId, newStage) {
-  try {
-    const resp = await fetch(`/api/crm/applications/${appId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: newStage })
-    });
-    const data = await resp.json();
-    if (data.success) {
-      loadCrmApplications();
-    }
-  } catch (e) {
-    alert("Failed to update status: " + e.message);
+function moveCrmStage(appId, newStage) {
+  const app = crmApplications.find(a => a.id === appId);
+  if (app) {
+    app.status = newStage;
+    saveCrmApplicationsLocal();
   }
 }
 
-async function deleteCrmApp(appId) {
+function deleteCrmApp(appId) {
   if (!confirm("Are you sure you want to delete this tracked application?")) return;
-  try {
-    const resp = await fetch(`/api/crm/applications/${appId}`, { method: "DELETE" });
-    const data = await resp.json();
-    if (data.success) {
-      loadCrmApplications();
-    }
-  } catch (e) {
-    alert("Failed to delete application: " + e.message);
-  }
+  crmApplications = crmApplications.filter(a => a.id !== appId);
+  saveCrmApplicationsLocal();
 }
 
-async function saveCurrentAnalysisToCrm() {
+function saveCurrentAnalysisToCrm() {
   const jdText = getJdText();
   if (!jdText) { alert("Please paste or fetch a Job Description first."); return; }
 
@@ -2516,7 +2719,8 @@ async function saveCurrentAnalysisToCrm() {
   const lines = jdText.split("\n").map(l => l.trim()).filter(l => l.length > 0);
   const title = lines[0] ? lines[0].slice(0, 60) : "Target Role";
 
-  const appData = {
+  const newApp = {
+    id: "app_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
     title: title,
     company: "Target Employer",
     track: track,
@@ -2524,23 +2728,13 @@ async function saveCurrentAnalysisToCrm() {
     salary: salary,
     work_mode: workMode,
     jd_text: jdText,
-    tailored_resume_md: window._tailoredResumes[track]?.full_markdown || ""
+    tailored_resume_md: window._tailoredResumes[track]?.full_markdown || "",
+    applied_date: new Date().toISOString().slice(0, 10)
   };
 
-  try {
-    const resp = await fetch("/api/crm/applications", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(appData)
-    });
-    const data = await resp.json();
-    if (data.success) {
-      alert(`✓ Saved "${title}" to your Kanban CRM!`);
-      loadCrmApplications();
-    }
-  } catch (e) {
-    alert("Failed to save application: " + e.message);
-  }
+  crmApplications.unshift(newApp);
+  saveCrmApplicationsLocal();
+  alert(`✓ Saved "${title}" to your Kanban CRM!`);
 }
 
 /* ═══════════════════════════ BOOKMARKLET IMPORT ═══════════════════════ */
@@ -2606,7 +2800,7 @@ async function injectKeywordBullet(keyword, tc) {
   try {
     const resp = await fetch("/inject_keyword_bullet", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getAuthHeaders(),
       body: JSON.stringify({
         keyword: keyword,
         track: trackCode,
@@ -2831,7 +3025,7 @@ async function runGenerateRecruiterPitch() {
 
     const resp = await fetch("/generate_recruiter_pitch", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ jd_text: jdText, track, resume_text: resumeText, candidate_info, preferred_model })
     });
 
