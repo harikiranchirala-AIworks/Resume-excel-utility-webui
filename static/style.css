@@ -67,49 +67,6 @@ body {
   position: relative;
 }
 
-/* ── WATERMARK BACKGROUND LOGOS (LEFT & RIGHT MARGINS) ── */
-body::before {
-  content: "";
-  position: fixed;
-  top: 50%;
-  left: 20px;
-  transform: translateY(-50%);
-  width: 260px;
-  height: 260px;
-  background-image: url('/static/logo.png');
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: contain;
-  opacity: 0.14;
-  pointer-events: none;
-  z-index: 0;
-}
-
-body::after {
-  content: "";
-  position: fixed;
-  top: 50%;
-  right: 20px;
-  transform: translateY(-50%);
-  width: 260px;
-  height: 260px;
-  background-image: url('/static/logo.png');
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: contain;
-  opacity: 0.14;
-  pointer-events: none;
-  z-index: 0;
-}
-
-@media (max-width: 1450px) {
-  body::before, body::after {
-    opacity: 0.05;
-    width: 200px;
-    height: 200px;
-  }
-}
-
 /* ── HEADER ── */
 header {
   background: rgba(255, 255, 255, 0.85);
