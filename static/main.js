@@ -1356,14 +1356,14 @@ function copyTailoredMd(tc) {
 /* ═══════════════════════════ LIGHT / DARK THEME ═══════════════════════ */
 
 function initTheme() {
-  const saved = localStorage.getItem("app-theme") || "light";
+  const saved = localStorage.getItem("app-theme") || "dark";
   document.documentElement.setAttribute("data-theme", saved);
   updateThemeToggleBtn(saved);
 }
 
 function toggleTheme() {
-  const current = document.documentElement.getAttribute("data-theme") || "light";
-  const next = current === "light" ? "dark" : "light";
+  const current = document.documentElement.getAttribute("data-theme") || "dark";
+  const next = current === "dark" ? "light" : "dark";
   document.documentElement.setAttribute("data-theme", next);
   localStorage.setItem("app-theme", next);
   updateThemeToggleBtn(next);
@@ -1372,7 +1372,7 @@ function toggleTheme() {
 function updateThemeToggleBtn(theme) {
   const btn = document.getElementById("theme-toggle-btn");
   if (btn) {
-    btn.innerHTML = theme === "light" ? "☀️ Light Theme" : "🌙 Dark Theme";
+    btn.innerHTML = theme === "dark" ? "☀️ Light Mode" : "🌙 Dark Mode";
   }
 }
 
